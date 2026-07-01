@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <!--
   Deckbound — a tower-defense deckbuilder.
-  Task 1: the project skeleton.
+  Issue #3: map & core, game loop.
 
-  This is intentionally the SIMPLEST possible starting point:
-  a titled page with a game-canvas placeholder. There is NO game logic yet.
-  Later tasks (map, enemies, waves, towers, cards...) build on top of this.
+  The canvas now shows the level's fixed path and the core we defend, drawn by
+  a running game loop (see main.js). Enemies, towers, and cards arrive in later
+  Issues. This page stays deliberately simple; main.js holds the game logic.
 
   Plain HTML + CSS + JavaScript for now. We can add Phaser 3 later if the
   real-time action needs it (see GAME_BRIEF.md).
@@ -33,17 +33,17 @@
   <!-- Main play area. Everything the game draws will go on this canvas. -->
   <main class="stage">
     <!--
-      The <canvas> is where all game graphics will be drawn later.
-      Its internal drawing size is set in main.js; CSS controls how big it
-      looks on screen. For now it just shows a placeholder message.
+      The <canvas> is where all game graphics are drawn. Its internal drawing
+      size (800x450) is fixed here; CSS controls how big it looks on screen.
+      main.js draws the path, the core, and the running game loop onto it.
     -->
     <canvas id="game-canvas" width="800" height="450"
-            aria-label="Deckbound game area (placeholder)"></canvas>
+            aria-label="Deckbound game area: the level path and the core"></canvas>
   </main>
 
   <!-- Footer: a quiet status line we can use while building. -->
   <footer class="site-footer">
-    <span>Skeleton build — no game logic yet.</span>
+    <span>Issue #3 — map, core &amp; game loop.</span>
   </footer>
 
   <!-- The game code. 'defer' means it runs after the page has loaded. -->
