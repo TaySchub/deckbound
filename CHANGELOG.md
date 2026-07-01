@@ -6,6 +6,17 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **Deck / collection + meta-progression + polish** (Stage 3; Issues #8, #13, #14)
+  — completes the v1 loop. New **hub / start screen** showing your card collection
+  and an **Essence shop**. Finishing a run earns **Essence** (more for going
+  further / winning), which **persists between runs** (saved in the browser via
+  localStorage) and can be spent to permanently **unlock the Sniper card** and buy
+  starting perks (**+50 currency**, **+3 lives**). Your **deck** = the tower cards
+  you've unlocked; the in-run toolbar shows only those (in-run card management kept
+  light for v1, per the brief). Runs now flow hub → prep → waves → win/lose →
+  run-summary (with Essence earned) → back to the hub. This is the "always
+  progressing" pillar: you get stronger across runs. File: `main.js` (+ label
+  updates in `index.html`).
 - **Content & depth — tower/enemy variety + per-type upgrades** (Stage 2; Issues
   #10, #11, #12). **5 tower types** with genuinely different behaviors, chosen
   from a new bottom **toolbar**: Arrow (balanced single-target), Cannon (splash

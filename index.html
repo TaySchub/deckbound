@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <!--
-  Deckbound — a tower-defense deckbuilder.
-  Tower & enemy variety + per-type upgrades (Stage 2).
+  Deckbound — a tower-defense deckbuilder (v1).
 
-  Pick from 5 tower types (Arrow, Cannon/splash, Frost/slow, Sniper, Zap) in the
-  bottom toolbar, build them on slots, and upgrade them — each upgrade scales that
-  tower's identity. Survive 10 waves of mixed enemy types (Mote, Runner, Brute,
-  Swarm). Still to come: a deck/hand and meta-progression. main.js holds the logic.
+  Full loop: from the hub, spend Essence to unlock towers/perks (saved between
+  runs), then Start Run — build & upgrade from your deck of 5 tower types, and
+  survive 10 waves of mixed enemies defending the core. Win or lose, you earn
+  Essence and get stronger over time. All game logic lives in main.js.
 
   Plain HTML + CSS + JavaScript for now. We can add Phaser 3 later if the
   real-time action needs it (see GAME_BRIEF.md).
@@ -44,7 +43,7 @@
 
   <!-- Footer: a quiet status line we can use while building. -->
   <footer class="site-footer">
-    <span>5 tower types · 4 enemy types · per-type upgrades.</span>
+    <span>v1 — hub, deck, meta-progression, 10 waves.</span>
   </footer>
 
   <!-- The game code. 'defer' means it runs after the page has loaded. -->
