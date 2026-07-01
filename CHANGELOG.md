@@ -6,6 +6,17 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **Core loop — a full playable round** (Stage 1 of finishing the build; covers
+  the heart of Issues #4–#7 + #9). Turns the feel-prototype into a real game:
+  **build** towers on fixed slots and **upgrade** them by spending **currency**;
+  survive **10 escalating waves** with a calm prep phase between them (and you can
+  build/upgrade live mid-wave — the "interactive" pacing). Enemies reaching the
+  **core** cost **lives**; **win** by surviving all waves, **lose** at 0 lives —
+  both with an end screen + "Play again". On-canvas Start Wave button, HUD
+  (lives / currency / wave), build & upgrade cost hints, and can't-afford
+  feedback. Economy & wave curve are first-pass and **not yet balance-tuned**.
+  Keeps the kill/upgrade juice + procedural audio. File: `main.js` (+ label
+  updates in `index.html`). Plain canvas, no dependencies.
 - **Combat feel-prototype** (on top of #3) — makes two developer ideas playable:
   **juicy upgrade visuals** and **cool, unique kill sounds**. Enemies ("blight
   motes") walk the fixed path; two pre-placed towers auto-target and fire at

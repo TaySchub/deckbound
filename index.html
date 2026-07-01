@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!--
   Deckbound — a tower-defense deckbuilder.
-  Combat feel-prototype (built on Issue #3's path + core + game loop).
+  Core loop — a full playable round.
 
-  The canvas shows enemies walking the fixed path while two towers auto-fire and
-  destroy them (with visual pops + procedural sound). Click a tower to upgrade it
-  and watch it glow up. This is a FEEL prototype — proper tower placement,
-  currency, waves, and cards arrive in later Issues. main.js holds the game logic.
+  Build towers on the slots (spending currency), upgrade them, and survive 10
+  escalating waves defending the core. Win by surviving; lose if too many enemies
+  reach the core. Still to come: tower/enemy variety, real upgrade paths, a
+  deck/hand, and meta-progression. main.js holds the game logic.
 
   Plain HTML + CSS + JavaScript for now. We can add Phaser 3 later if the
   real-time action needs it (see GAME_BRIEF.md).
@@ -44,7 +44,7 @@
 
   <!-- Footer: a quiet status line we can use while building. -->
   <footer class="site-footer">
-    <span>Combat feel-prototype — enemies, towers, upgrades &amp; sound.</span>
+    <span>Core loop — build, upgrade, survive 10 waves.</span>
   </footer>
 
   <!-- The game code. 'defer' means it runs after the page has loaded. -->
