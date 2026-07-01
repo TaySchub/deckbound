@@ -6,6 +6,20 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **Combat feel-prototype** (on top of #3) — makes two developer ideas playable:
+  **juicy upgrade visuals** and **cool, unique kill sounds**. Enemies ("blight
+  motes") walk the fixed path; two pre-placed towers auto-target and fire at
+  them; hits show health bars and a hurt-flash, kills spawn a particle burst +
+  an expanding ring. **Click a tower to upgrade it** (up to level 3) — it visibly
+  grows, brightens, gains glow and level pips, and fires faster/harder, with an
+  upgrade sparkle + sound. All audio is **generated in-code via the Web Audio
+  API** (original, license-clean — no sound files): distinct shoot / hit / kill
+  (randomised so it never feels repetitive) / upgrade effects, with a **mute
+  toggle** and browser-safe unlock on first tap. Works with mouse and touch.
+  NOTE: this is a *feel* prototype — tower positions/stats are hard-coded; real
+  placement (#6), currency (#7), waves (#4/#5) and cards (#8+) come next, in order.
+  File: `main.js` (plus label/footer updates in `index.html`). Still plain canvas,
+  no dependencies.
 - **Issue #3 — map & core, game loop.** The canvas now draws the level's single
   fixed path and the **core** (Wellspring) we defend, rendered by a real game
   loop with a stable *fixed timestep* (60 updates/sec, independent of screen
