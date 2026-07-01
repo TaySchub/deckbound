@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+  Deckbound — a tower-defense deckbuilder.
+  Task 1: the project skeleton.
+
+  This is intentionally the SIMPLEST possible starting point:
+  a titled page with a game-canvas placeholder. There is NO game logic yet.
+  Later tasks (map, enemies, waves, towers, cards...) build on top of this.
+
+  Plain HTML + CSS + JavaScript for now. We can add Phaser 3 later if the
+  real-time action needs it (see GAME_BRIEF.md).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <!-- Makes the page scale correctly on phones (needed for iPhone play). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <title>Deckbound</title>
+
+  <!-- Our styles live in a separate file to keep things easy to read. -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- Page header: the game's title and a one-line reminder of what it is. -->
+  <header class="site-header">
+    <h1>Deckbound</h1>
+    <p class="tagline">A tower-defense deckbuilder — draw, place, survive.</p>
+  </header>
+
+  <!-- Main play area. Everything the game draws will go on this canvas. -->
+  <main class="stage">
+    <!--
+      The <canvas> is where all game graphics will be drawn later.
+      Its internal drawing size is set in main.js; CSS controls how big it
+      looks on screen. For now it just shows a placeholder message.
+    -->
+    <canvas id="game-canvas" width="800" height="450"
+            aria-label="Deckbound game area (placeholder)"></canvas>
+  </main>
+
+  <!-- Footer: a quiet status line we can use while building. -->
+  <footer class="site-footer">
+    <span>Skeleton build — no game logic yet.</span>
+  </footer>
+
+  <!-- The game code. 'defer' means it runs after the page has loaded. -->
+  <script src="main.js" defer></script>
+</body>
+</html>

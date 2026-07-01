@@ -1,0 +1,77 @@
+/*
+  Deckbound — styles for the Task 1 skeleton.
+  Goal: a clean, readable, mobile-friendly page. Nothing fancy yet.
+*/
+
+/* A calm dark theme so the canvas stands out. Colors are easy to change. */
+:root {
+  --bg: #10131a;
+  --panel: #171b24;
+  --ink: #e8ecf3;
+  --muted: #8b94a7;
+  --accent: #6ea8fe;
+}
+
+/* Reset the default page margins and use a comfortable system font. */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Center everything and leave room for the notch on iPhones. */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom);
+}
+
+/* --- Header --- */
+.site-header {
+  text-align: center;
+  margin: 18px 0 12px;
+}
+.site-header h1 {
+  margin: 0;
+  font-size: clamp(28px, 6vw, 44px);
+  letter-spacing: 1px;
+}
+.tagline {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: clamp(13px, 3vw, 16px);
+}
+
+/* --- Play area --- */
+.stage {
+  width: 100%;
+  max-width: 820px;
+  display: flex;
+  justify-content: center;
+}
+
+/*
+  The canvas scales down to fit narrow screens (phones) but never gets wider
+  than its natural size. The 16:9 ratio matches the 800x450 drawing size.
+*/
+#game-canvas {
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  background: var(--panel);
+  border: 1px solid #2a3040;
+  border-radius: 10px;
+  /* Crisp edges when we draw pixel art later. */
+  image-rendering: pixelated;
+}
+
+/* --- Footer --- */
+.site-footer {
+  margin: 14px 0 20px;
+  color: var(--muted);
+  font-size: 12px;
+}

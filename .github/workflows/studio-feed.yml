@@ -1,0 +1,21 @@
+name: Studio Feed
+on:
+  push:
+    branches: ["**"]
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            MSG="New push to branch ${{ github.ref_name }} by ${{ github.actor }} — the agents are working."
+          else
+            MSG="Studio heartbeat at $(date -u '+%H:%M UTC') — cloud automation is alive."
+          fi
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"$MSG\"}" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"

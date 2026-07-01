@@ -1,0 +1,19 @@
+# macOS / iCloud noise
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Node (only if we add tooling later)
+node_modules/
+npm-debug.log*
+
+# Logs / temp
+*.log
+tmp/
