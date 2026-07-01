@@ -17,3 +17,7 @@ npm-debug.log*
 # Logs / temp
 *.log
 tmp/
+
+# Stray empty clone that GitHub Desktop created inside this folder by mistake.
+# Ignored so it isn't tracked; safe to delete from Finder anytime.
+deckbound/
