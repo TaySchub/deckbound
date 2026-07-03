@@ -21,7 +21,7 @@ If double-clicking ever misbehaves, run a tiny local web server instead. Open
 the **Terminal** app and paste:
 
 ```bash
-cd ~/Library/Mobile\ Documents/com~apple~CloudDocs/GameStudio
+cd path/to/deckbound   # this folder — tip: type "cd " then drag it from Finder into Terminal
 python3 -m http.server 8000
 ```
 
@@ -31,6 +31,10 @@ Terminal to stop the server.
 ---
 
 ## Part 2 — Connect this folder to GitHub (one time)
+
+> **Already done?** If your `deckbound` repo is already on GitHub (it is, if
+> you're reading this there), this one-time setup is complete — skip to Part 4 to
+> work on the game. This section is kept as a record of how it was wired up.
 
 ### Step 2a — Install the GitHub CLI (`gh`)
 
@@ -62,7 +66,7 @@ and push. Run these from inside this folder. (The first two lines set who your
 commits show as — use your own name/email.)
 
 ```bash
-cd ~/Library/Mobile\ Documents/com~apple~CloudDocs/GameStudio
+cd path/to/deckbound   # this folder (the one with index.html)
 
 git config --global user.name  "Your Name"
 git config --global user.email "you@example.com"
@@ -70,7 +74,7 @@ git config --global user.email "you@example.com"
 git init
 git branch -M main
 git add .
-git commit -m "Initial commit: skeleton, docs, and Studio Feed workflow"
+git commit -m "Initial commit: game, docs, and Studio Feed workflow"
 
 # This line auto-fills your GitHub username from your gh login, so you don't
 # have to type it. It links this folder to your empty deckbound repo and pushes.
