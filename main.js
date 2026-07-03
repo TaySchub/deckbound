@@ -83,8 +83,8 @@ const TOWER_BY_ID = Object.fromEntries(TOWER_TYPES.map((t) => [t.id, t]));
 // already echo real HP (brute > mote > runner > swarm); each enemy is drawn as
 // its dish in drawFood(), and color keeps them distinct at a glance.
 const ENEMY_ART = {
-  mote:   { color: "#e3a93f", edge: "#8a6016", radius: 12 },  // Chicken Nugget — golden
-  runner: { color: "#c9772f", edge: "#6e3d17", radius: 9 },   // The Slider — burger
+  mote:   { color: "#dca85c", edge: "#8a5a22", radius: 12 },  // Hot Dog — golden bun
+  runner: { color: "#e3a95c", edge: "#7c4a1e", radius: 9 },   // The Slider — burger (golden bun)
   brute:  { color: "#7c3b2c", edge: "#3e1a12", radius: 17 },  // Tough Steak — dark slab
   swarm:  { color: "#f2ca3c", edge: "#a37e17", radius: 7 },   // Fry Swarm — bright yellow
 };
@@ -114,7 +114,7 @@ let META = freshMeta();
 
 // The Essence shop shown on the hub screen.
 const SHOP = [
-  { id: "sniper", label: "Reserve Chopstick Sensei's seat", cost: 3, owned: () => META.unlocked.includes("sniper"), buy: () => META.unlocked.push("sniper") },
+  { id: "sniper", label: "Reserve the Milkshake Slurper's seat", cost: 3, owned: () => META.unlocked.includes("sniper"), buy: () => META.unlocked.push("sniper") },
   { id: "currency", label: "Cash float (+50 Tips)", cost: 2, owned: () => META.boughtCurrency, buy: () => (META.boughtCurrency = true) },
   { id: "lives", label: "Forgiving inspector (+3 Health)", cost: 2, owned: () => META.boughtLives, buy: () => (META.boughtLives = true) },
 ];
@@ -1076,43 +1076,135 @@ function drawFood(ctx, typeId, x, y, r, color, edge, hurt) {
   ctx.lineJoin = "round";
   const fill = hurt ? "#ffffff" : color;
   if (typeId === "mote") {
-    // Chicken Nugget — a lumpy golden blob on tiny legs, googly eyes.
-    ctx.strokeStyle = edge; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x - r * 0.35, y + r * 0.65); ctx.lineTo(x - r * 0.35, y + r * 1.15);
-    ctx.moveTo(x + r * 0.35, y + r * 0.65); ctx.lineTo(x + r * 0.35, y + r * 1.15); ctx.stroke();
-    ctx.fillStyle = fill; ctx.beginPath();
-    ctx.arc(x - r * 0.45, y - r * 0.05, r * 0.68, 0, Math.PI * 2);
-    ctx.arc(x + r * 0.45, y + r * 0.05, r * 0.62, 0, Math.PI * 2);
-    ctx.arc(x, y + r * 0.35, r * 0.6, 0, Math.PI * 2);
-    ctx.arc(x, y - r * 0.1, r * 0.85, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x, y - r * 0.1, r * 0.85, 0, Math.PI * 2); ctx.stroke();
-    if (!hurt) drawGooglyEyes(ctx, x, y - r * 0.15, Math.max(1.4, r * 0.26));
+    // Hot Dog — a frankfurter in a bun with a mustard zigzag, on tiny running legs.
+    const w = r * 1.22, h = r * 0.6;   // half-extents of the bun
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(x, y + r * 0.92, w * 0.95, r * 0.16, 0, 0, 7); ctx.fill();   // shadow
+    ctx.strokeStyle = edge; ctx.lineCap = "round"; ctx.lineWidth = Math.max(1.3, r * 0.15);   // little legs
+    ctx.beginPath(); ctx.moveTo(x - r * 0.5, y + h * 0.7); ctx.lineTo(x - r * 0.58, y + r * 0.9);
+    ctx.moveTo(x + r * 0.5, y + h * 0.7); ctx.lineTo(x + r * 0.58, y + r * 0.9); ctx.stroke();
+    ctx.fillStyle = edge; ctx.beginPath();                                                     // feet
+    ctx.ellipse(x - r * 0.66, y + r * 0.94, r * 0.2, r * 0.1, 0.2, 0, 7); ctx.ellipse(x + r * 0.66, y + r * 0.94, r * 0.2, r * 0.1, -0.2, 0, 7); ctx.fill();
+    if (hurt) { ctx.fillStyle = "#fff"; roundRect(ctx, x - w, y - h, w * 2, h * 2, h); ctx.fill(); }
+    else {
+      // Bun.
+      ctx.fillStyle = fill; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.4, r * 0.16);
+      roundRect(ctx, x - w, y - h, w * 2, h * 2, h); ctx.fill(); ctx.stroke();
+      ctx.save(); roundRect(ctx, x - w, y - h, w * 2, h * 2, h); ctx.clip();
+      ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.beginPath(); ctx.ellipse(x, y - h * 0.5, w * 0.82, h * 0.35, 0, 0, 7); ctx.fill();   // bun sheen
+      ctx.restore();
+      // Sausage nestled in the bun.
+      const sw = w * 0.9, sh = h * 0.58, sy = y - h * 0.24;
+      const sg = ctx.createLinearGradient(x, sy - sh, x, sy + sh);
+      sg.addColorStop(0, "#c9633a"); sg.addColorStop(1, "#8f3b1f");
+      ctx.fillStyle = sg; ctx.strokeStyle = "#6e2c14"; ctx.lineWidth = Math.max(1.1, r * 0.1);
+      roundRect(ctx, x - sw, sy - sh, sw * 2, sh * 2, sh); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.32)"; ctx.lineWidth = Math.max(0.9, r * 0.07); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(x - sw * 0.68, sy - sh * 0.45); ctx.lineTo(x + sw * 0.68, sy - sh * 0.45); ctx.stroke();   // sausage sheen
+      // Mustard zigzag.
+      ctx.strokeStyle = "#f4c531"; ctx.lineWidth = Math.max(1.2, r * 0.13); ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.beginPath();
+      const zx0 = x - sw * 0.78, zx1 = x + sw * 0.78, zn = 5;
+      for (let i = 0; i <= zn; i++) { const zx = zx0 + (zx1 - zx0) * (i / zn), zy = sy - sh * 0.02 + (i % 2 ? -sh * 0.4 : sh * 0.2); if (i === 0) ctx.moveTo(zx, zy); else ctx.lineTo(zx, zy); }
+      ctx.stroke();
+    }
   } else if (typeId === "runner") {
-    // The Slider — a small burger side-on (bun / patty / bun) with motion lines.
-    const w = r * 2.2, h = r * 1.7;
-    ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = 1.3;
-    ctx.beginPath(); ctx.moveTo(x - w * 0.95, y - h * 0.15); ctx.lineTo(x - w * 0.55, y - h * 0.15);
-    ctx.moveTo(x - w * 1.0, y + h * 0.2); ctx.lineTo(x - w * 0.5, y + h * 0.2); ctx.stroke();
-    ctx.strokeStyle = edge; ctx.lineWidth = 1.5;
-    ctx.fillStyle = hurt ? "#fff" : "#dc9a55";  // top bun
-    ctx.beginPath(); ctx.moveTo(x - w / 2, y - h * 0.08); ctx.quadraticCurveTo(x, y - h * 0.95, x + w / 2, y - h * 0.08); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = hurt ? "#fff" : "#5f3416"; ctx.fillRect(x - w / 2, y - h * 0.08, w, h * 0.3);  // patty
-    ctx.strokeRect(x - w / 2, y - h * 0.08, w, h * 0.3);
-    ctx.fillStyle = hurt ? "#fff" : "#cd8f4a";  // bottom bun
-    ctx.beginPath(); ctx.moveTo(x - w / 2, y + h * 0.22); ctx.quadraticCurveTo(x, y + h * 0.6, x + w / 2, y + h * 0.22); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // The Slider — a sleek side-on mini-burger (sesame dome / patty / cheese / bun)
+    // leaning into motion, with speed lines behind it (it *slides*, fast and frail).
+    const bw = r * 1.05;   // half bun width
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(x, y + r * 0.95, bw * 1.0, r * 0.16, 0, 0, 7); ctx.fill();   // shadow
+    ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineCap = "round"; ctx.lineWidth = Math.max(1.1, r * 0.13);   // speed lines behind
+    ctx.beginPath();
+    ctx.moveTo(x - bw * 1.35, y - r * 0.3); ctx.lineTo(x - bw * 2.15, y - r * 0.3);
+    ctx.moveTo(x - bw * 1.4, y + r * 0.05); ctx.lineTo(x - bw * 2.35, y + r * 0.05);
+    ctx.moveTo(x - bw * 1.3, y + r * 0.4); ctx.lineTo(x - bw * 2.0, y + r * 0.4); ctx.stroke();
+    if (hurt) { ctx.fillStyle = "#fff"; roundRect(ctx, x - bw, y - r * 0.85, bw * 2, r * 1.7, r * 0.5); ctx.fill(); }
+    else {
+      // Bottom bun.
+      ctx.fillStyle = "#cf9247"; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.3, r * 0.14);
+      ctx.beginPath(); ctx.moveTo(x - bw, y + r * 0.32); ctx.quadraticCurveTo(x - bw, y + r * 0.82, x, y + r * 0.82); ctx.quadraticCurveTo(x + bw, y + r * 0.82, x + bw, y + r * 0.32); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Patty (overhangs the buns).
+      ctx.fillStyle = "#5a3016"; ctx.strokeStyle = "#3c1f0e"; ctx.lineWidth = Math.max(1.1, r * 0.12);
+      roundRect(ctx, x - bw * 1.16, y + r * 0.08, bw * 2.32, r * 0.4, r * 0.18); ctx.fill(); ctx.stroke();
+      // Cheese slice with drippy corners.
+      ctx.fillStyle = "#f0ad3c"; ctx.strokeStyle = "#b9781d"; ctx.lineWidth = Math.max(1, r * 0.09);
+      ctx.beginPath();
+      ctx.moveTo(x - bw * 1.12, y + r * 0.06); ctx.lineTo(x + bw * 1.12, y + r * 0.06);
+      ctx.lineTo(x + bw * 0.95, y + r * 0.34); ctx.lineTo(x + bw * 0.4, y + r * 0.14);
+      ctx.lineTo(x - bw * 0.2, y + r * 0.36); ctx.lineTo(x - bw * 0.8, y + r * 0.12); ctx.lineTo(x - bw * 1.12, y + r * 0.28);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Sesame top-bun dome.
+      ctx.fillStyle = fill; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.3, r * 0.14);
+      ctx.beginPath(); ctx.moveTo(x - bw, y + r * 0.06); ctx.quadraticCurveTo(x - bw * 1.02, y - r * 0.82, x, y - r * 0.82); ctx.quadraticCurveTo(x + bw * 1.02, y - r * 0.82, x + bw, y + r * 0.06); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.save(); ctx.beginPath(); ctx.moveTo(x - bw, y + r * 0.06); ctx.quadraticCurveTo(x - bw * 1.02, y - r * 0.82, x, y - r * 0.82); ctx.quadraticCurveTo(x + bw * 1.02, y - r * 0.82, x + bw, y + r * 0.06); ctx.closePath(); ctx.clip();
+      ctx.fillStyle = "rgba(255,255,255,0.28)"; ctx.beginPath(); ctx.ellipse(x - r * 0.2, y - r * 0.42, bw * 0.6, r * 0.24, -0.3, 0, 7); ctx.fill();   // grease shine
+      ctx.fillStyle = "#f6dfa8";
+      for (const [sx, sy] of [[-0.42, -0.24], [0.02, -0.4], [0.46, -0.22], [-0.16, -0.08]]) { ctx.beginPath(); ctx.ellipse(x + sx * r, y + sy * r, r * 0.1, r * 0.06, 0.3, 0, 7); ctx.fill(); }   // sesame
+      ctx.restore();
+    }
   } else if (typeId === "brute") {
-    // Tough Steak — a wide dark slab, grill marks, thick outline (reads as the big one).
-    const w = r * 2.1, h = r * 1.45;
-    ctx.fillStyle = fill; roundRect(ctx, x - w / 2, y - h / 2, w, h, r * 0.5); ctx.fill();
-    ctx.strokeStyle = edge; ctx.lineWidth = 3; roundRect(ctx, x - w / 2, y - h / 2, w, h, r * 0.5); ctx.stroke();
-    ctx.strokeStyle = "rgba(0,0,0,0.45)"; ctx.lineWidth = 2;
-    for (const f of [-0.3, 0, 0.3]) { ctx.beginPath(); ctx.moveTo(x + f * w - h * 0.3, y - h * 0.32); ctx.lineTo(x + f * w + h * 0.3, y + h * 0.32); ctx.stroke(); }
+    // Tough Steak — a big seared cut: irregular slab, cream fat-cap rim, charred
+    // cross-hatch grill marks, heavy outline (reads as the big one), stubby legs.
+    const sw = r * 1.12, sh = r * 0.82;
+    ctx.fillStyle = "rgba(0,0,0,0.28)"; ctx.beginPath(); ctx.ellipse(x, y + r * 1.02, sw * 1.05, r * 0.18, 0, 0, 7); ctx.fill();   // shadow
+    ctx.strokeStyle = edge; ctx.lineCap = "round"; ctx.lineWidth = Math.max(2, r * 0.16);   // short stubby legs
+    ctx.beginPath(); ctx.moveTo(x - r * 0.5, y + sh * 0.85); ctx.lineTo(x - r * 0.54, y + r * 1.0);
+    ctx.moveTo(x + r * 0.5, y + sh * 0.85); ctx.lineTo(x + r * 0.54, y + r * 1.0); ctx.stroke();
+    ctx.fillStyle = edge; ctx.beginPath();
+    ctx.ellipse(x - r * 0.6, y + r * 1.02, r * 0.2, r * 0.1, 0, 0, 7); ctx.ellipse(x + r * 0.6, y + r * 1.02, r * 0.2, r * 0.1, 0, 0, 7); ctx.fill();
+    const slab = () => {
+      ctx.beginPath();
+      ctx.moveTo(x - sw, y - sh * 0.3);
+      ctx.quadraticCurveTo(x - sw * 1.05, y - sh, x - sw * 0.4, y - sh * 0.95);
+      ctx.quadraticCurveTo(x + sw * 0.1, y - sh * 1.12, x + sw * 0.6, y - sh * 0.85);
+      ctx.quadraticCurveTo(x + sw * 1.1, y - sh * 0.68, x + sw, y - sh * 0.05);
+      ctx.quadraticCurveTo(x + sw * 1.05, y + sh * 0.72, x + sw * 0.5, y + sh * 0.95);
+      ctx.quadraticCurveTo(x - sw * 0.1, y + sh * 1.12, x - sw * 0.6, y + sh * 0.85);
+      ctx.quadraticCurveTo(x - sw * 1.1, y + sh * 0.6, x - sw, y - sh * 0.3);
+      ctx.closePath();
+    };
+    if (hurt) { ctx.fillStyle = "#fff"; slab(); ctx.fill(); }
+    else {
+      const g = ctx.createRadialGradient(x - r * 0.2, y - r * 0.2, r * 0.2, x, y, r * 1.15);
+      g.addColorStop(0, "#8f4634"); g.addColorStop(0.7, fill); g.addColorStop(1, "#5a2417");
+      ctx.fillStyle = g; slab(); ctx.fill();
+      ctx.save(); slab(); ctx.clip();
+      // Charred grill marks (subtle cross-hatch).
+      ctx.strokeStyle = "rgba(18,7,3,0.38)"; ctx.lineWidth = Math.max(1.3, r * 0.1); ctx.lineCap = "round";
+      for (const o of [-0.55, 0.1, 0.7]) { ctx.beginPath(); ctx.moveTo(x + o * sw - sh * 0.6, y - sh * 0.7); ctx.lineTo(x + o * sw + sh * 0.6, y + sh * 0.7); ctx.stroke(); }
+      for (const o of [-0.25, 0.45]) { ctx.beginPath(); ctx.moveTo(x + o * sw - sh * 0.6, y + sh * 0.7); ctx.lineTo(x + o * sw + sh * 0.6, y - sh * 0.7); ctx.stroke(); }
+      // Cream fat-cap rim along the top edge.
+      ctx.strokeStyle = "#e7d4a4"; ctx.lineWidth = Math.max(2, r * 0.2); ctx.lineJoin = "round";
+      ctx.beginPath(); ctx.moveTo(x - sw * 0.72, y - sh * 0.72); ctx.quadraticCurveTo(x - sw * 0.1, y - sh * 1.02, x + sw * 0.62, y - sh * 0.78); ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.8, r * 0.14); slab(); ctx.stroke();   // outline
+    }
   } else if (typeId === "swarm") {
-    // Fry Swarm — a scatter of thin yellow sticks.
-    ctx.strokeStyle = edge; ctx.lineWidth = 1;
-    ctx.fillStyle = fill;
-    const fry = (fx, fy, ang) => { ctx.save(); ctx.translate(fx, fy); ctx.rotate(ang); ctx.fillRect(-r * 0.26, -r * 0.9, r * 0.5, r * 1.9); ctx.strokeRect(-r * 0.26, -r * 0.9, r * 0.5, r * 1.9); ctx.restore(); };
-    fry(x - r * 0.5, y, -0.35); fry(x + r * 0.15, y - r * 0.2, 0.18); fry(x + r * 0.55, y + r * 0.15, 0.55); fry(x - r * 0.05, y + r * 0.3, -0.05);
+    // Fry Swarm — a red carton of golden fries poking out (many little low-HP fries).
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(x, y + r * 1.15, r * 1.1, r * 0.2, 0, 0, 7); ctx.fill();   // shadow
+    ctx.strokeStyle = "#8f2a1f"; ctx.lineCap = "round"; ctx.lineWidth = Math.max(1.1, r * 0.16);   // tiny legs
+    ctx.beginPath(); ctx.moveTo(x - r * 0.4, y + r * 0.9); ctx.lineTo(x - r * 0.46, y + r * 1.12);
+    ctx.moveTo(x + r * 0.4, y + r * 0.9); ctx.lineTo(x + r * 0.46, y + r * 1.12); ctx.stroke();
+    ctx.fillStyle = "#8f2a1f"; ctx.beginPath();
+    ctx.ellipse(x - r * 0.54, y + r * 1.14, r * 0.2, r * 0.11, 0, 0, 7); ctx.ellipse(x + r * 0.54, y + r * 1.14, r * 0.2, r * 0.11, 0, 0, 7); ctx.fill();
+    // Fries poking out (drawn first; the carton front overlaps their bottoms).
+    const fry = (dx, topRel, ang) => {
+      ctx.save(); ctx.translate(x + dx * r, y + r * 0.1); ctx.rotate(ang);
+      const len = (0.1 - topRel) * r;
+      ctx.fillStyle = hurt ? "#fff" : "#f4cf4a"; ctx.strokeStyle = hurt ? "#fff" : "#b8891f"; ctx.lineWidth = Math.max(0.8, r * 0.1);
+      roundRect(ctx, -r * 0.14, -len, r * 0.28, len, r * 0.11); ctx.fill(); ctx.stroke();
+      if (!hurt) { ctx.fillStyle = "#fbe38a"; roundRect(ctx, -r * 0.14, -len, r * 0.28, len * 0.42, r * 0.11); ctx.fill(); }   // lighter tip
+      ctx.restore();
+    };
+    fry(-0.55, -1.05, -0.22); fry(-0.18, -1.22, 0.04); fry(0.18, -1.14, -0.05); fry(0.52, -1.0, 0.2); fry(0.0, -0.95, 0.0);
+    // Red carton (trapezoid) with a cream band.
+    const topW = r * 2.3, botW = r * 1.5, topY = y - r * 0.12, botY = y + r * 1.02;
+    ctx.fillStyle = hurt ? "#fff" : "#d6473a"; ctx.strokeStyle = hurt ? "#fff" : "#8f2a1f"; ctx.lineWidth = Math.max(1.2, r * 0.18); ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(x - topW / 2, topY); ctx.lineTo(x + topW / 2, topY); ctx.lineTo(x + botW / 2, botY); ctx.lineTo(x - botW / 2, botY); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (!hurt) {
+      ctx.fillStyle = "#f4ece0";
+      ctx.beginPath(); ctx.moveTo(x - topW * 0.42, topY + r * 0.34); ctx.lineTo(x + topW * 0.42, topY + r * 0.34); ctx.lineTo(x + botW * 0.42, topY + r * 0.74); ctx.lineTo(x - botW * 0.42, topY + r * 0.74); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - topW / 2, topY); ctx.lineTo(x + topW / 2, topY); ctx.stroke();   // rim shade
+    }
   } else {
     ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = edge; ctx.lineWidth = 2; ctx.stroke();
@@ -1145,73 +1237,368 @@ function drawSpark4(ctx, x, y, s) {
   ctx.lineTo(x - s, y); ctx.lineTo(x - s * 0.28, y - s * 0.28); ctx.closePath(); ctx.fill();
 }
 
-// A seated diner customer (the tower). Cheap glyph: head + shoulders in the
-// customer's color plus one identity feature. Upgrade level adds a napkin/bib
-// (Lv2) and a chef's-kiss sparkle (Lv3); `firing` triggers the Photographer flash.
-function drawCustomer(ctx, typeId, cx, cy, r, color, opts = {}) {
-  const level = opts.level || 1, firing = !!opts.firing;
-  const dark = "#0b0e14";
-  ctx.save();
-  ctx.lineJoin = "round";
-  const headR = r * 0.6, headY = cy - r * 0.28, shoulderY = headY + headR * 0.75;
-  // Shoulders / body.
-  ctx.fillStyle = color; ctx.strokeStyle = dark; ctx.lineWidth = 1.5;
+/* ---- Customer mascots ------------------------------------------------------
+   Each tower is a fully-drawn little diner character with its own body, not a
+   shared glyph. Signature color stays the dominant read (shirt/outfit) so towers
+   are still tellable apart at ~30px on the belt. Shared face + limb helpers keep
+   the per-character code short. Migrated one at a time; not-yet-redesigned towers
+   fall through to drawLegacyCustomer below. */
+const MDARK = "#0b0e14";       // shared cartoon outline
+const SKIN = "#f4c48c";        // customer skin tone (same for all — keeps color as the ID)
+
+// A limb drawn as an outlined capsule: dark underlay + colored top.
+function drawLimb(ctx, x1, y1, x2, y2, w, col) {
+  ctx.lineCap = "round";
+  ctx.strokeStyle = MDARK; ctx.lineWidth = w + 2.4; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+}
+// A filled, dark-outlined circle.
+function fillCircle(ctx, x, y, rad, fill, lw = 1.6) {
+  ctx.fillStyle = fill; ctx.strokeStyle = MDARK; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill(); ctx.stroke();
+}
+// A round cartoon face: catchlight eyes, cheeks, optional grin. Returns nothing.
+function drawFace(ctx, cx, hy, headR, opts = {}) {
+  const eyeDx = headR * 0.42, eyeY = hy + headR * (opts.eyeUp ? -0.02 : 0.1), eyeR = Math.max(1.3, headR * 0.2);
+  if (opts.cheeks !== false) {
+    ctx.fillStyle = "rgba(255,140,110,0.34)";
+    ctx.beginPath(); ctx.arc(cx - headR * 0.62, eyeY + headR * 0.32, headR * 0.24, 0, 7); ctx.arc(cx + headR * 0.62, eyeY + headR * 0.32, headR * 0.24, 0, 7); ctx.fill();
+  }
+  ctx.fillStyle = MDARK;
+  ctx.beginPath(); ctx.ellipse(cx - eyeDx, eyeY, eyeR * 0.82, eyeR, 0, 0, 7); ctx.ellipse(cx + eyeDx, eyeY, eyeR * 0.82, eyeR, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.beginPath(); ctx.arc(cx - eyeDx + eyeR * 0.3, eyeY - eyeR * 0.38, eyeR * 0.3, 0, 7); ctx.arc(cx + eyeDx + eyeR * 0.3, eyeY - eyeR * 0.38, eyeR * 0.3, 0, 7); ctx.fill();
+  if (opts.grin) {
+    ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.4, headR * 0.14); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(cx, eyeY + headR * 0.26, headR * 0.42, 0.16 * Math.PI, 0.84 * Math.PI); ctx.stroke();
+  }
+}
+
+// The Regular (#arrow) — the eager everyman diner: neat hair, a bit of a belly,
+// one arm resting, the other raised mid fork-stab.
+function drawRegular(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1;
+  const shirt = color, hair = "#5b3a21", pants = "#39415a";
+  const headR = r * 0.6, hy = cy - r * 0.6, shoulderY = cy - r * 0.02;
+  // Seated legs (behind the torso).
+  ctx.fillStyle = pants; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  for (const lx of [-r * 0.38, r * 0.38]) { roundRect(ctx, cx + lx - r * 0.25, cy + r * 0.74, r * 0.5, r * 0.7, r * 0.22); ctx.fill(); ctx.stroke(); }
+  // Resting arm (our left): shirt upper arm + skin hand on the lap.
+  drawLimb(ctx, cx - r * 0.62, shoulderY + r * 0.18, cx - r * 0.58, cy + r * 0.74, r * 0.3, shirt);
+  fillCircle(ctx, cx - r * 0.58, cy + r * 0.8, r * 0.19, SKIN);
+  // Torso (shirt) — slim build with just a hint of belly.
+  ctx.fillStyle = shirt; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - r, cy + r);
-  ctx.quadraticCurveTo(cx - r, shoulderY, cx, shoulderY);
-  ctx.quadraticCurveTo(cx + r, shoulderY, cx + r, cy + r);
+  ctx.moveTo(cx - r * 0.66, shoulderY);
+  ctx.quadraticCurveTo(cx - r * 0.82, cy + r * 0.55, cx - r * 0.5, cy + r * 1.14);
+  ctx.quadraticCurveTo(cx, cy + r * 1.28, cx + r * 0.5, cy + r * 1.14);
+  ctx.quadraticCurveTo(cx + r * 0.82, cy + r * 0.55, cx + r * 0.66, shoulderY);
+  ctx.quadraticCurveTo(cx, shoulderY - r * 0.32, cx - r * 0.66, shoulderY);
   ctx.closePath(); ctx.fill(); ctx.stroke();
-  // Napkin / bib on the first upgrade.
+  // Napkin bib tucked at the collar (level 2+).
   if (level >= 2) {
-    ctx.fillStyle = "#f2f6ff";
-    ctx.beginPath(); ctx.moveTo(cx - r * 0.55, shoulderY + r * 0.05); ctx.lineTo(cx + r * 0.55, shoulderY + r * 0.05); ctx.lineTo(cx, cy + r * 0.72); ctx.closePath();
-    ctx.fill(); ctx.strokeStyle = dark; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.5, cy + r * 0.1); ctx.lineTo(cx + r * 0.5, cy + r * 0.1); ctx.lineTo(cx, cy + r * 0.82); ctx.closePath(); ctx.fill(); ctx.stroke();
   }
+  // Collar shadow.
+  ctx.strokeStyle = "rgba(0,0,0,0.22)"; ctx.lineWidth = Math.max(1.2, r * 0.1); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(cx, shoulderY - r * 0.05, r * 0.34, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  // Neck.
+  ctx.fillStyle = SKIN; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  roundRect(ctx, cx - r * 0.2, hy + headR * 0.4, r * 0.4, r * 0.5, r * 0.12); ctx.fill(); ctx.stroke();
+  // Ears.
+  for (const ex of [-headR, headR]) fillCircle(ctx, cx + ex, hy + headR * 0.05, headR * 0.24, SKIN);
   // Head.
-  ctx.fillStyle = color; ctx.strokeStyle = dark; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(cx, headY, headR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  const eyeY = headY - headR * 0.05, eyeDx = headR * 0.4, eyeR = Math.max(1, headR * 0.16);
-  const drawEyes = () => { ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(cx - eyeDx, eyeY, eyeR, 0, Math.PI * 2); ctx.arc(cx + eyeDx, eyeY, eyeR, 0, Math.PI * 2); ctx.fill(); };
-  ctx.strokeStyle = dark; ctx.fillStyle = dark; ctx.lineWidth = 1.4;
-  if (typeId === "arrow") {
-    // The Regular — eyes + a raised fork.
-    drawEyes();
-    const fx = cx + r * 0.9, fTop = headY - r * 1.05;
-    ctx.strokeStyle = "#dfe6f2"; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(fx, fTop + r * 0.45); ctx.lineTo(fx, headY + r * 0.1); ctx.stroke();
-    ctx.lineWidth = 1.2;
-    for (const dx of [-r * 0.18, 0, r * 0.18]) { ctx.beginPath(); ctx.moveTo(fx + dx, fTop); ctx.lineTo(fx + dx, fTop + r * 0.5); ctx.stroke(); }
-  } else if (typeId === "cannon") {
-    // Big Appetite — small eyes above a wide open mouth.
-    ctx.fillStyle = dark;
-    ctx.beginPath(); ctx.arc(cx - eyeDx, eyeY - headR * 0.28, eyeR * 0.85, 0, Math.PI * 2); ctx.arc(cx + eyeDx, eyeY - headR * 0.28, eyeR * 0.85, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#3a1010"; ctx.beginPath(); ctx.ellipse(cx, headY + headR * 0.38, headR * 0.5, headR * 0.42, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = dark; ctx.lineWidth = 1; ctx.stroke();
-  } else if (typeId === "frost") {
-    // The Photographer — eyes + a camera held up; a flash burst when firing.
-    drawEyes();
-    const camW = r * 0.95, camH = r * 0.68, camY = headY - r * 0.05;
-    ctx.fillStyle = "#20262f"; roundRect(ctx, cx - camW / 2, camY - camH / 2, camW, camH, r * 0.14); ctx.fill();
-    ctx.strokeStyle = dark; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = "#bfe4ff"; ctx.beginPath(); ctx.arc(cx, camY, camH * 0.3, 0, Math.PI * 2); ctx.fill();
-    if (firing) { ctx.fillStyle = "#ffffff"; drawSpark4(ctx, cx + camW * 0.65, camY - camH * 0.75, r * 0.55); }
-  } else if (typeId === "sniper") {
-    // Chopstick Sensei — glasses glint + chopsticks reaching out.
-    ctx.strokeStyle = "#eaf2ff"; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.arc(cx - eyeDx, eyeY, eyeR * 1.6, 0, Math.PI * 2); ctx.arc(cx + eyeDx, eyeY, eyeR * 1.6, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx - eyeDx + eyeR * 1.6, eyeY); ctx.lineTo(cx + eyeDx - eyeR * 1.6, eyeY); ctx.stroke();
-    ctx.strokeStyle = "#caa46a"; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(cx + r * 0.4, headY + r * 0.15); ctx.lineTo(cx + r * 1.3, headY - r * 0.55);
-    ctx.moveTo(cx + r * 0.4, headY + r * 0.4); ctx.lineTo(cx + r * 1.3, headY - r * 0.2); ctx.stroke();
-  } else if (typeId === "zap") {
-    // The Kids' Table — a party hat on an excitable little customer.
-    drawEyes();
-    ctx.fillStyle = "#ff6bd0"; ctx.strokeStyle = dark; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(cx, headY - headR * 2.1); ctx.lineTo(cx - headR * 0.75, headY - headR * 0.7); ctx.lineTo(cx + headR * 0.75, headY - headR * 0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#ffe08a"; ctx.beginPath(); ctx.arc(cx, headY - headR * 2.1, Math.max(1.3, r * 0.16), 0, Math.PI * 2); ctx.fill();
+  fillCircle(ctx, cx, hy, headR, SKIN, 2);
+  // Hair — a neat side-swept cut with a little cowlick and a part on his left.
+  ctx.fillStyle = hair; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(cx - headR * 0.96, hy + headR * 0.12);                                                  // left temple
+  ctx.quadraticCurveTo(cx - headR * 1.06, hy - headR * 0.92, cx - headR * 0.2, hy - headR * 1.0);     // up and over the top
+  ctx.quadraticCurveTo(cx + headR * 0.1, hy - headR * 1.18, cx + headR * 0.42, hy - headR * 0.92);    // cowlick peak
+  ctx.quadraticCurveTo(cx + headR * 0.98, hy - headR * 0.72, cx + headR * 0.96, hy - headR * 0.02);   // down the right side
+  ctx.quadraticCurveTo(cx + headR * 0.55, hy - headR * 0.24, cx + headR * 0.2, hy - headR * 0.34);    // forehead sweep
+  ctx.quadraticCurveTo(cx - headR * 0.02, hy - headR * 0.54, cx - headR * 0.16, hy - headR * 0.26);   // the part
+  ctx.quadraticCurveTo(cx - headR * 0.55, hy - headR * 0.12, cx - headR * 0.96, hy + headR * 0.12);   // back to the temple
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Face.
+  drawFace(ctx, cx, hy, headR, { grin: true, cheeks: true });
+  // Nose — a tiny skin bump.
+  fillCircle(ctx, cx, hy + headR * 0.34, headR * 0.13, SKIN, 1);
+  // Raised arm + fork (drawn last, on top).
+  const sx = cx + r * 0.58, sy = shoulderY + r * 0.14;
+  const ex = cx + r * 1.02, ey = cy - r * 0.02;
+  const hx2 = cx + r * 1.18, hy2 = hy - r * 0.12;
+  drawLimb(ctx, sx, sy, ex, ey, r * 0.32, shirt);   // upper arm (sleeve)
+  drawLimb(ctx, ex, ey, hx2, hy2, r * 0.26, SKIN);  // forearm (skin)
+  fillCircle(ctx, hx2, hy2, r * 0.24, SKIN);        // fist
+  // Fork — a filled metal utensil: handle, head base, three notched tines + a highlight.
+  const metal = "#d9dfec", fBot = hy2 - r * 0.04, neck = hy2 - r * 0.52, headTop = hy2 - r * 1.02;
+  ctx.fillStyle = metal; ctx.strokeStyle = MDARK; ctx.lineWidth = 1; ctx.lineJoin = "round";
+  roundRect(ctx, hx2 - r * 0.08, neck - r * 0.02, r * 0.16, fBot - neck, r * 0.07); ctx.fill(); ctx.stroke();   // handle
+  roundRect(ctx, hx2 - r * 0.25, neck - r * 0.13, r * 0.5, r * 0.2, r * 0.06); ctx.fill(); ctx.stroke();        // head base (tines meet here)
+  for (const dx of [-r * 0.18, 0, r * 0.18]) { roundRect(ctx, hx2 + dx - r * 0.055, headTop, r * 0.11, (neck - r * 0.02) - headTop, r * 0.045); ctx.fill(); ctx.stroke(); }   // tines
+  ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = Math.max(0.8, r * 0.05); ctx.lineCap = "round";    // handle highlight
+  ctx.beginPath(); ctx.moveTo(hx2 - r * 0.02, neck + r * 0.02); ctx.lineTo(hx2 - r * 0.02, fBot - r * 0.06); ctx.stroke();
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx - r * 1.0, hy - r * 0.7, r * 0.4); }
+}
+
+// Big Appetite (#cannon) — the round glutton mid-gulp: a huge open mouth, eager
+// eyes, and a fork & knife held up, ready to inhale a whole platter (the splash).
+function drawBigAppetite(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1;
+  const shirt = color, pants = "#39415a";
+  const bodyCy = cy + r * 0.46, bodyRx = r * 1.02, bodyRy = r * 0.98;
+  const hy = cy - r * 0.5, headR = r * 0.72;
+  // Tiny legs peeking out below the round body.
+  ctx.fillStyle = pants; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  for (const lx of [-r * 0.4, r * 0.4]) { roundRect(ctx, cx + lx - r * 0.22, cy + r * 1.16, r * 0.44, r * 0.42, r * 0.18); ctx.fill(); ctx.stroke(); }
+  // Round body (shirt).
+  ctx.fillStyle = shirt; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(cx, bodyCy, bodyRx, bodyRy, 0, 0, 7); ctx.fill(); ctx.stroke();
+  // Arms reaching down to hold a plate in front.
+  const lhx = cx - r * 0.82, lhy = cy + r * 0.6, rhx = cx + r * 0.82, rhy = cy + r * 0.6;
+  drawLimb(ctx, cx - r * 0.8, bodyCy - r * 0.1, lhx, lhy, r * 0.3, shirt);
+  drawLimb(ctx, cx + r * 0.8, bodyCy - r * 0.1, rhx, rhy, r * 0.3, shirt);
+  fillCircle(ctx, lhx, lhy, r * 0.2, SKIN); fillCircle(ctx, rhx, rhy, r * 0.2, SKIN);
+  // Napkin bib tucked at the chin (level 2+).
+  if (level >= 2) {
+    ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.5, cy + r * 0.06); ctx.quadraticCurveTo(cx, cy + r * 0.02, cx + r * 0.5, cy + r * 0.06); ctx.lineTo(cx, cy + r * 0.5); ctx.closePath(); ctx.fill(); ctx.stroke();
   }
-  // Chef's-kiss shine at max level.
-  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx + r * 0.95, headY - r * 0.95, r * 0.42); }
+  // Plate held up in both hands (empty — waiting for the next dish).
+  const plateCy = cy + r * 0.56, plateRx = r * 0.92, plateRy = r * 0.24;
+  ctx.fillStyle = "#eef2f8"; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(cx, plateCy, plateRx, plateRy, 0, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#d3dae8"; ctx.beginPath(); ctx.ellipse(cx, plateCy - plateRy * 0.16, plateRx * 0.6, plateRy * 0.5, 0, 0, 7); ctx.fill();   // inner well
+  ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = Math.max(0.8, r * 0.05);   // rim shine
+  ctx.beginPath(); ctx.ellipse(cx, plateCy, plateRx * 0.82, plateRy * 0.7, 0, Math.PI * 1.1, Math.PI * 1.75); ctx.stroke();
+  // Big head.
+  fillCircle(ctx, cx, hy, headR, SKIN, 2);
+  // Rosy chubby cheeks.
+  ctx.fillStyle = "rgba(255,140,110,0.4)";
+  ctx.beginPath(); ctx.arc(cx - headR * 0.66, hy + headR * 0.24, headR * 0.28, 0, 7); ctx.arc(cx + headR * 0.66, hy + headR * 0.24, headR * 0.28, 0, 7); ctx.fill();
+  // Huge open mouth — the identity: dark maw, red interior, a tongue.
+  const mCy = hy + headR * 0.34, mRx = headR * 0.46, mRy = headR * 0.42;
+  ctx.fillStyle = "#2a0d0d"; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(cx, mCy, mRx, mRy, 0, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#d0524f"; ctx.beginPath(); ctx.ellipse(cx, mCy + mRy * 0.42, mRx * 0.66, mRy * 0.42, 0, 0, Math.PI); ctx.fill();   // tongue
+  ctx.fillStyle = "#f4f7ff"; ctx.fillRect(cx - mRx * 0.7, mCy - mRy * 0.98, mRx * 1.4, mRy * 0.2);   // upper teeth strip
+  // Eager eyes with raised brows, above the mouth.
+  const eyeY = hy - headR * 0.24, eyeDx = headR * 0.34, eyeR = Math.max(1.3, headR * 0.17);
+  ctx.fillStyle = MDARK;
+  ctx.beginPath(); ctx.ellipse(cx - eyeDx, eyeY, eyeR * 0.9, eyeR, 0, 0, 7); ctx.ellipse(cx + eyeDx, eyeY, eyeR * 0.9, eyeR, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.beginPath(); ctx.arc(cx - eyeDx + eyeR * 0.3, eyeY - eyeR * 0.4, eyeR * 0.32, 0, 7); ctx.arc(cx + eyeDx + eyeR * 0.3, eyeY - eyeR * 0.4, eyeR * 0.32, 0, 7); ctx.fill();
+  ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.2, headR * 0.1); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(cx - eyeDx - eyeR, eyeY - eyeR * 1.7); ctx.lineTo(cx - eyeDx + eyeR * 0.6, eyeY - eyeR * 1.3);
+  ctx.moveTo(cx + eyeDx + eyeR, eyeY - eyeR * 1.7); ctx.lineTo(cx + eyeDx - eyeR * 0.6, eyeY - eyeR * 1.3); ctx.stroke();   // raised brows
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx + r * 1.15, hy - r * 0.7, r * 0.4); }
+}
+
+// The Photographer (#frost) — the artsy diner who makes each dish freeze and pose:
+// a beret, cyan shirt, peeking over a big camera raised to their face; the flash
+// pops when firing (the slow effect).
+function drawPhotographer(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1, firing = !!opts.firing;
+  const shirt = color, pants = "#39415a", hy = cy - r * 0.56, headR = r * 0.6, shoulderY = cy - r * 0.02;
+  // Seated legs.
+  ctx.fillStyle = pants; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  for (const lx of [-r * 0.38, r * 0.38]) { roundRect(ctx, cx + lx - r * 0.25, cy + r * 0.74, r * 0.5, r * 0.7, r * 0.22); ctx.fill(); ctx.stroke(); }
+  // Camera-holding hand positions + arms (behind the camera). Held low at the
+  // chest so her face shows above it.
+  const camCy = cy + r * 0.04, camW = r * 1.24, camH = r * 0.74;
+  const lhx = cx - camW * 0.46, lhy = camCy + camH * 0.34, rhx = cx + camW * 0.46, rhy = camCy + camH * 0.34;
+  drawLimb(ctx, cx - r * 0.6, shoulderY + r * 0.2, lhx, lhy, r * 0.28, shirt);
+  drawLimb(ctx, cx + r * 0.6, shoulderY + r * 0.2, rhx, rhy, r * 0.28, shirt);
+  // Torso (cyan shirt) — slim build.
+  ctx.fillStyle = shirt; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.66, shoulderY);
+  ctx.quadraticCurveTo(cx - r * 0.82, cy + r * 0.55, cx - r * 0.5, cy + r * 1.14);
+  ctx.quadraticCurveTo(cx, cy + r * 1.28, cx + r * 0.5, cy + r * 1.14);
+  ctx.quadraticCurveTo(cx + r * 0.82, cy + r * 0.55, cx + r * 0.66, shoulderY);
+  ctx.quadraticCurveTo(cx, shoulderY - r * 0.32, cx - r * 0.66, shoulderY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Napkin bib (level 2+).
+  if (level >= 2) {
+    ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.46, cy + r * 0.12); ctx.lineTo(cx + r * 0.46, cy + r * 0.12); ctx.lineTo(cx, cy + r * 0.78); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  // Neck + head.
+  ctx.fillStyle = SKIN; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  roundRect(ctx, cx - r * 0.2, hy + headR * 0.5, r * 0.4, r * 0.5, r * 0.12); ctx.fill(); ctx.stroke();
+  for (const ex of [-headR, headR]) fillCircle(ctx, cx + ex, hy + headR * 0.02, headR * 0.22, SKIN);   // ears
+  fillCircle(ctx, cx, hy, headR, SKIN, 2);
+  // Small beret cap, tilted, cyan — the artsy signature, sitting high so her forehead shows.
+  ctx.fillStyle = color; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.ellipse(cx - headR * 0.1, hy - headR * 0.78, headR * 0.92, headR * 0.4, -0.16, 0, 7); ctx.fill(); ctx.stroke();
+  fillCircle(ctx, cx - headR * 0.1, hy - headR * 1.12, headR * 0.11, color, 1.4);   // stem nub
+  // Peeking face above the camera: cheeks, eyes, brows, nose.
+  const eyeY = hy - headR * 0.06, eyeDx = headR * 0.36, eyeR = Math.max(1.3, headR * 0.19);
+  ctx.fillStyle = "rgba(255,140,110,0.36)";
+  ctx.beginPath(); ctx.arc(cx - headR * 0.6, hy + headR * 0.32, headR * 0.24, 0, 7); ctx.arc(cx + headR * 0.6, hy + headR * 0.32, headR * 0.24, 0, 7); ctx.fill();
+  ctx.fillStyle = MDARK;
+  ctx.beginPath(); ctx.ellipse(cx - eyeDx, eyeY, eyeR * 0.85, eyeR, 0, 0, 7); ctx.ellipse(cx + eyeDx, eyeY, eyeR * 0.85, eyeR, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.beginPath(); ctx.arc(cx - eyeDx + eyeR * 0.3, eyeY - eyeR * 0.4, eyeR * 0.3, 0, 7); ctx.arc(cx + eyeDx + eyeR * 0.3, eyeY - eyeR * 0.4, eyeR * 0.3, 0, 7); ctx.fill();
+  ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.1, headR * 0.1); ctx.lineCap = "round";   // gentle arched brows
+  ctx.beginPath(); ctx.arc(cx - eyeDx, eyeY - eyeR * 1.5, eyeR * 1.1, 1.15 * Math.PI, 1.85 * Math.PI); ctx.arc(cx + eyeDx, eyeY - eyeR * 1.5, eyeR * 1.1, 1.15 * Math.PI, 1.85 * Math.PI); ctx.stroke();
+  fillCircle(ctx, cx, hy + headR * 0.28, headR * 0.1, SKIN, 1);   // nose
+  // Camera body (held at the chest).
+  ctx.fillStyle = "#2b313b"; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  roundRect(ctx, cx - camW / 2, camCy - camH / 2, camW, camH, r * 0.12); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = color; ctx.fillRect(cx - camW / 2 + r * 0.06, camCy - camH / 2 + r * 0.08, camW - r * 0.12, r * 0.1);   // cyan accent band
+  // Flash bulb (top-left) + shutter viewfinder bump (top-right).
+  ctx.fillStyle = "#e9eef6"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.4;
+  roundRect(ctx, cx - camW * 0.34, camCy - camH / 2 - r * 0.18, r * 0.34, r * 0.2, r * 0.05); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#3b424e"; roundRect(ctx, cx + camW * 0.16, camCy - camH / 2 - r * 0.12, r * 0.26, r * 0.14, r * 0.04); ctx.fill(); ctx.stroke();
+  // Lens — big round eye of the camera pointed at the food.
+  fillCircle(ctx, cx, camCy + camH * 0.04, r * 0.4, "#171b21", 2);
+  fillCircle(ctx, cx, camCy + camH * 0.04, r * 0.27, "#0e3a49", 1.4);
+  ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, r * 0.06);
+  ctx.beginPath(); ctx.arc(cx, camCy + camH * 0.04, r * 0.2, Math.PI * 1.05, Math.PI * 1.7); ctx.stroke();   // lens glint ring
+  ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.beginPath(); ctx.arc(cx - r * 0.1, camCy - camH * 0.04, r * 0.06, 0, 7); ctx.fill();   // highlight dot
+  // Hands gripping the camera sides.
+  fillCircle(ctx, lhx, lhy, r * 0.19, SKIN); fillCircle(ctx, rhx, rhy, r * 0.19, SKIN);
+  // Flash pop when firing.
+  if (firing) {
+    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(cx - camW * 0.34 + r * 0.17, camCy - camH / 2 - r * 0.08, r * 0.5, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    drawSpark4(ctx, cx - camW * 0.34 + r * 0.17, camCy - camH / 2 - r * 0.08, r * 0.7);
+  }
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx + r * 1.05, hy - r * 0.5, r * 0.4); }
+}
+
+// The Milkshake Slurper (#sniper) — the long-range diner: cradles a grape shake and
+// sends a ridiculously long bendy straw snaking across the room to slurp a far dish.
+function drawMilkshakeSlurper(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1;
+  const shirt = color, pants = "#39415a", shake = "#b487ec", hy = cy - r * 0.58, headR = r * 0.56, shoulderY = cy - r * 0.02;
+  // Seated legs.
+  ctx.fillStyle = pants; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  for (const lx of [-r * 0.38, r * 0.38]) { roundRect(ctx, cx + lx - r * 0.25, cy + r * 0.74, r * 0.5, r * 0.7, r * 0.22); ctx.fill(); ctx.stroke(); }
+  // Arms reaching down to cradle the glass in front.
+  const lhx = cx - r * 0.5, lhy = cy + r * 0.62, rhx = cx + r * 0.5, rhy = cy + r * 0.62;
+  drawLimb(ctx, cx - r * 0.66, shoulderY + r * 0.18, lhx, lhy, r * 0.28, shirt);
+  drawLimb(ctx, cx + r * 0.66, shoulderY + r * 0.18, rhx, rhy, r * 0.28, shirt);
+  // Torso (shirt) — slim build.
+  ctx.fillStyle = shirt; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.66, shoulderY);
+  ctx.quadraticCurveTo(cx - r * 0.82, cy + r * 0.55, cx - r * 0.5, cy + r * 1.14);
+  ctx.quadraticCurveTo(cx, cy + r * 1.28, cx + r * 0.5, cy + r * 1.14);
+  ctx.quadraticCurveTo(cx + r * 0.82, cy + r * 0.55, cx + r * 0.66, shoulderY);
+  ctx.quadraticCurveTo(cx, shoulderY - r * 0.32, cx - r * 0.66, shoulderY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Napkin bib (level 2+).
+  if (level >= 2) {
+    ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.42, cy + r * 0.14); ctx.lineTo(cx + r * 0.42, cy + r * 0.14); ctx.lineTo(cx, cy + r * 0.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  // Neck + head.
+  ctx.fillStyle = SKIN; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  roundRect(ctx, cx - r * 0.2, hy + headR * 0.5, r * 0.4, r * 0.5, r * 0.12); ctx.fill(); ctx.stroke();
+  for (const ex of [-headR, headR]) fillCircle(ctx, cx + ex, hy + headR * 0.05, headR * 0.22, SKIN);   // ears
+  fillCircle(ctx, cx, hy, headR, SKIN, 2);
+  // Soda-jerk paper cap — a white folded boat hat.
+  ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.8; ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx - headR * 1.02, hy - headR * 0.34);
+  ctx.quadraticCurveTo(cx - headR * 0.7, hy - headR * 1.16, cx, hy - headR * 1.02);
+  ctx.quadraticCurveTo(cx + headR * 0.7, hy - headR * 1.16, cx + headR * 1.02, hy - headR * 0.34);
+  ctx.quadraticCurveTo(cx, hy - headR * 0.62, cx - headR * 1.02, hy - headR * 0.34);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, hy - headR * 0.72, headR * 0.12, 0, 7); ctx.fill();   // little cap badge
+  // Happy sipping face: catchlight eyes, rosy cheeks, small content smile.
+  const eyeY = hy - headR * 0.02, eyeDx = headR * 0.4, eyeR = Math.max(1.3, headR * 0.19);
+  ctx.fillStyle = "rgba(255,140,110,0.4)";
+  ctx.beginPath(); ctx.arc(cx - headR * 0.64, eyeY + headR * 0.34, headR * 0.24, 0, 7); ctx.arc(cx + headR * 0.64, eyeY + headR * 0.34, headR * 0.24, 0, 7); ctx.fill();
+  ctx.fillStyle = MDARK;
+  ctx.beginPath(); ctx.ellipse(cx - eyeDx, eyeY, eyeR * 0.82, eyeR, 0, 0, 7); ctx.ellipse(cx + eyeDx, eyeY, eyeR * 0.82, eyeR, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.beginPath(); ctx.arc(cx - eyeDx + eyeR * 0.3, eyeY - eyeR * 0.4, eyeR * 0.3, 0, 7); ctx.arc(cx + eyeDx + eyeR * 0.3, eyeY - eyeR * 0.4, eyeR * 0.3, 0, 7); ctx.fill();
+  ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.3, headR * 0.13); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(cx, eyeY + headR * 0.26, headR * 0.24, 0.1 * Math.PI, 0.9 * Math.PI); ctx.stroke();   // small smile
+  // ---- Milkshake glass cradled in front (tulip soda glass) ----
+  const gTopY = cy + r * 0.14, gBotY = cy + r * 1.12, gTopHalf = r * 0.5, gBotHalf = r * 0.28;
+  ctx.fillStyle = shake; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - gTopHalf, gTopY); ctx.lineTo(cx + gTopHalf, gTopY);
+  ctx.lineTo(cx + gBotHalf, gBotY); ctx.lineTo(cx - gBotHalf, gBotY); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 1;   // glass ridges
+  for (const f of [-0.45, 0, 0.45]) { ctx.beginPath(); ctx.moveTo(cx + f * gTopHalf * 1.6, gTopY + 2); ctx.lineTo(cx + f * gBotHalf * 1.6, gBotY - 2); ctx.stroke(); }
+  // A lighter foam line at the top so the shake reads as full to the rim.
+  ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = Math.max(1, r * 0.09); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(cx - gTopHalf * 0.85, gTopY + r * 0.05); ctx.lineTo(cx + gTopHalf * 0.85, gTopY + r * 0.05); ctx.stroke();
+  // Hands cradling the glass.
+  fillCircle(ctx, lhx, lhy, r * 0.19, SKIN); fillCircle(ctx, rhx, rhy, r * 0.19, SKIN);
+  // ---- Short straw poking up to his lips (idle sip). The long slurp reaching out
+  // to a far dish is the ATTACK, drawn only when firing (attack-visuals pass). ----
+  const strawPath = () => {
+    ctx.moveTo(cx + r * 0.18, gTopY - r * 0.04);
+    ctx.quadraticCurveTo(cx + r * 0.34, cy - r * 0.16, cx + r * 0.2, cy - r * 0.42);
+  };
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = MDARK; ctx.lineWidth = r * 0.22; ctx.beginPath(); strawPath(); ctx.stroke();     // outline
+  ctx.strokeStyle = "#f4f7fb"; ctx.lineWidth = r * 0.14; ctx.beginPath(); strawPath(); ctx.stroke(); // straw body
+  ctx.save(); ctx.strokeStyle = "#e5484d"; ctx.lineWidth = r * 0.05; ctx.setLineDash([r * 0.14, r * 0.14]);   // candy stripe
+  ctx.beginPath(); strawPath(); ctx.stroke(); ctx.restore();
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx + r * 0.95, hy - r * 0.5, r * 0.36); }
+}
+
+// Dispatch to a per-character mascot; fall back to the legacy glyph for towers
+// not yet redesigned. `firing` triggers per-tower attack flourishes (later pass).
+// One little kid in the huddle: yellow shirt, party hat, excited grin, arms up.
+function drawKid(ctx, kx, ky, kr, shirt, hatColor, armsUp) {
+  ctx.fillStyle = shirt; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.8; ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(kx - kr * 0.92, ky + kr * 1.7);
+  ctx.quadraticCurveTo(kx - kr * 1.02, ky + kr * 0.45, kx, ky + kr * 0.55);
+  ctx.quadraticCurveTo(kx + kr * 1.02, ky + kr * 0.45, kx + kr * 0.92, ky + kr * 1.7);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  if (armsUp) {
+    drawLimb(ctx, kx - kr * 0.66, ky + kr * 0.75, kx - kr * 1.16, ky - kr * 0.28, kr * 0.34, shirt);
+    drawLimb(ctx, kx + kr * 0.66, ky + kr * 0.75, kx + kr * 1.16, ky - kr * 0.28, kr * 0.34, shirt);
+    fillCircle(ctx, kx - kr * 1.16, ky - kr * 0.28, kr * 0.22, SKIN, 1.2);
+    fillCircle(ctx, kx + kr * 1.16, ky - kr * 0.28, kr * 0.22, SKIN, 1.2);
+  }
+  fillCircle(ctx, kx, ky, kr, SKIN, 1.8);   // head
+  // Party hat + pompom.
+  ctx.fillStyle = hatColor; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(kx, ky - kr * 2.05); ctx.lineTo(kx - kr * 0.72, ky - kr * 0.72); ctx.lineTo(kx + kr * 0.72, ky - kr * 0.72); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = Math.max(0.8, kr * 0.12);   // hat zigzag
+  ctx.beginPath(); ctx.moveTo(kx - kr * 0.34, ky - kr * 1.1); ctx.lineTo(kx + kr * 0.06, ky - kr * 1.0); ctx.lineTo(kx - kr * 0.14, ky - kr * 0.86); ctx.stroke();
+  fillCircle(ctx, kx, ky - kr * 2.05, kr * 0.2, "#fbfcff", 1);   // pompom
+  // Face: eyes, rosy cheeks, open excited grin.
+  const ex = kr * 0.36, eyy = ky - kr * 0.06, er = Math.max(1, kr * 0.17);
+  ctx.fillStyle = "rgba(255,140,110,0.36)";
+  ctx.beginPath(); ctx.arc(kx - kr * 0.56, ky + kr * 0.3, kr * 0.18, 0, 7); ctx.arc(kx + kr * 0.56, ky + kr * 0.3, kr * 0.18, 0, 7); ctx.fill();
+  ctx.fillStyle = MDARK; ctx.beginPath(); ctx.arc(kx - ex, eyy, er, 0, 7); ctx.arc(kx + ex, eyy, er, 0, 7); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.beginPath(); ctx.arc(kx - ex + er * 0.3, eyy - er * 0.4, er * 0.34, 0, 7); ctx.arc(kx + ex + er * 0.3, eyy - er * 0.4, er * 0.34, 0, 7); ctx.fill();
+  ctx.fillStyle = "#7a2b2b"; ctx.beginPath(); ctx.ellipse(kx, ky + kr * 0.42, kr * 0.26, kr * 0.2, 0, 0, 7); ctx.fill();
+}
+
+// The Kids' Table (#zap) — not one diner but a rowdy huddle of little kids in party
+// hats, all grabbing fistfuls at once (fast, cheap, tiny bites).
+function drawKidsTable(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1, shirt = color;
+  drawKid(ctx, cx, cy - r * 0.16, r * 0.5, shirt, color, true);          // back-center kid
+  drawKid(ctx, cx - r * 0.64, cy + r * 0.34, r * 0.46, shirt, "#ff6bd0", false);  // front-left (pink hat)
+  drawKid(ctx, cx + r * 0.64, cy + r * 0.34, r * 0.46, shirt, "#7fe0ff", true);   // front-right (cyan hat)
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx + r * 1.05, cy - r * 0.85, r * 0.4); }
+}
+
+// Dispatch to a per-character mascot. Every tower id is a full mascot now.
+function drawCustomer(ctx, typeId, cx, cy, r, color, opts = {}) {
+  ctx.save();
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  if (typeId === "cannon") drawBigAppetite(ctx, cx, cy, r, color, opts);
+  else if (typeId === "frost") drawPhotographer(ctx, cx, cy, r, color, opts);
+  else if (typeId === "sniper") drawMilkshakeSlurper(ctx, cx, cy, r, color, opts);
+  else if (typeId === "zap") drawKidsTable(ctx, cx, cy, r, color, opts);
+  else drawRegular(ctx, cx, cy, r, color, opts);   // arrow (default)
   ctx.restore();
 }
 

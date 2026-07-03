@@ -39,17 +39,17 @@ change.
 | **The Regular** | Steady single-target | `arrow` | The dependable everyday diner — reliable fork-stabs, never flashy. |
 | **Big Appetite** | Splash / AoE | `cannon` | Never met a platter they couldn't inhale in one radius-clearing gulp. |
 | **The Photographer** | Slow | `frost` | Makes every dish freeze and pose for the shot before it's eaten. |
-| **Chopstick Sensei** | Long range | `sniper` | Zen master who plucks the farthest morsel from across the room with a single flick. |
+| **The Milkshake Slurper** | Long range | `sniper` | Soda-jerk who sends a bendy straw clear across the room to slurp the farthest dish up in one pull. |
 | **The Kids' Table** | Cheap / fast / weak | `zap` | A rowdy cluster of kids grabbing fistfuls — fast, cheap, tiny bites. |
 
 ### Runaway food (enemies)
 
-Enemy size reads as HP: nugget and fries are small, the slider is mid, the steak
-is visibly the biggest.
+Enemy size reads as HP: the hot dog and fries are small, the slider is mid, the
+steak is visibly the biggest.
 
 | Display name | Role | Internal ID | Personality |
 |---|---|---|---|
-| **Chicken Nugget** | Basic starter, low HP | `mote` | A panicky little golden lump waddling along on tiny legs. |
+| **Hot Dog** | Basic starter, low HP | `mote` | A stubby frankfurter-in-a-bun scurrying down the belt on tiny legs. |
 | **The Slider** | Fast, frail | `runner` | A greased-up little burger that slides down the belt — here and gone. |
 | **Tough Steak** | Slow, high HP | `brute` | The big, stubborn, well-done slab that refuses to be chewed through. |
 | **Fry Swarm** | Tiny, many, low HP each | `swarm` | A carton of fries scattering in every direction at once. |
@@ -58,7 +58,7 @@ is visibly the biggest.
 
 **Each map is a different restaurant, and the restaurant type determines the
 enemy roster.** Map 1 is the American diner, so every Map 1 enemy is diner food
-scaled by HP (nuggets/fries up to burgers/steaks). Future restaurants bring their
+scaled by HP (hot dogs/fries up to burgers/steaks). Future restaurants bring their
 own rosters — e.g. a pizzeria debuts the splitter enemy, a seafood place debuts an
 armored lobster. **One restaurant per map; don't mix cuisines on a single map.**
 

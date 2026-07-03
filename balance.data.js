@@ -119,7 +119,7 @@ window.BALANCE = {
   },
   "enemyTypes": {
     "mote": {
-      "name": "Chicken Nugget",
+      "name": "Hot Dog",
       "hpMul": 1.0,
       "speedMul": 1.0,
       "reward": 5
@@ -190,8 +190,8 @@ window.BALANCE = {
       }
     },
     "sniper": {
-      "name": "Chopstick Sensei",
-      "blurb": "Plucks one dish from across the room (long range)",
+      "name": "The Milkshake Slurper",
+      "blurb": "Slurps one far dish clean up the straw (long range)",
       "cost": 95,
       "range": 235,
       "damage": 70,
