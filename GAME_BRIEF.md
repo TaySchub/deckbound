@@ -46,6 +46,13 @@ A deployable build, openable on a Mac or iPhone via the GitHub Pages link, playa
 ## Explicitly OUT of the first version (parked)
 Multiple maps, large card pools, maze/free-path building, online or local multiplayer, monetization, accounts or data collection, and polished art. These belong to later milestones or future cycles.
 
+## Post-v1 additions (developer-approved, beyond the frozen v1)
+v1 is complete. The developer has explicitly approved these additions *beyond*
+the frozen v1 scope above; they are being built as post-v1 features and noted
+here so the brief stays honest:
+- **Call the wave early for a bonus** — an opt-in prep-phase currency bonus for
+  starting waves promptly (does not change the no-clock prep).
+
 ## Constraints (from the developer profile)
 Beginner developer; agents do the building. Web game in HTML5 + JavaScript on GitHub Pages, tested on Mac + iPhone. Phaser 3 if the real-time action warrants it; plain HTML/CSS/JavaScript is fine if simpler. ~12–15 hrs/week. General-audience content. No monetization now (keep it addable later). **Original theme and assets only — no branded or trademarked content.**
 
