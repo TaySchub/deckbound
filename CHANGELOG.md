@@ -5,6 +5,19 @@ Format is deliberately simple and plain-language.
 
 ## [Unreleased]
 
+### Added
+- **Call the wave early for a bonus** (developer-approved post-v1 addition). The
+  Start Wave button now shows a currency bonus (e.g. `+18`) that's full the
+  instant a prep phase begins and decays linearly to 0 over
+  `economy.earlyCallWindow` seconds. Calling the wave grants the current bonus —
+  rewarding aggressive play without adding a forced countdown (prep stays
+  no-clock; you're never made to start). Bonus size/window are tunable in
+  `data/balance.json` (`economy.earlyCallBonus`, `economy.earlyCallWindow`).
+  Balance: the sim's steady reference doesn't call early, so the band gauge is
+  unchanged (59.5%, BALANCED); the sim reports a "call early" upper bound (88%)
+  as the free-income worst case (real aggressive play pays a prep-time cost the
+  sim can't model). Files: `data/balance.json`, `main.js`, `tools/balance_sim.py`.
+
 ### Changed
 - **The map is now data-driven.** The path and tower slots moved out of hardcoded
   arrays in `main.js` into `data/balance.json` (`map.path`, `map.slots`,

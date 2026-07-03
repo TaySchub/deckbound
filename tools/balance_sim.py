@@ -229,8 +229,11 @@ def buy_upgrades(towers: list[dict], currency: float, upgrade_cost: list) -> flo
     return currency
 
 
-def play_game(build: list[str], cfg: dict, seed: int) -> tuple[bool, int]:
-    """Play a full run with an economy-limited build-only strategy."""
+def play_game(build: list[str], cfg: dict, seed: int, early_bonus: float = 0.0) -> tuple[bool, int]:
+    """Play a full run with an economy-limited build-then-upgrade strategy.
+    early_bonus models a player who calls every wave early for the max bonus
+    (the sim can't represent the prep-time cost, so this is a free-income upper
+    bound on the aggressive line — the steady reference uses early_bonus=0)."""
     rng = random.Random(seed)
     econ = cfg["economy"]
     slots = cfg["map"]["slots"]
@@ -254,18 +257,18 @@ def play_game(build: list[str], cfg: dict, seed: int) -> tuple[bool, int]:
         currency = buy_upgrades(towers, currency, econ["upgradeCost"])
 
         leaked, earned = simulate_wave(towers, wave, cfg, rng, path)
-        currency += earned + econ["earnPerWave"]
+        currency += earned + econ["earnPerWave"] + early_bonus
         lives -= leaked
         if lives <= 0:
             return False, wi
     return True, len(cfg["waves"])
 
 
-def evaluate(build: list[str], cfg: dict, sims: int, base_seed: int) -> dict:
+def evaluate(build: list[str], cfg: dict, sims: int, base_seed: int, early_bonus: float = 0.0) -> dict:
     wins = 0
     survived = []
     for i in range(sims):
-        won, w = play_game(build, cfg, seed=base_seed + i)
+        won, w = play_game(build, cfg, seed=base_seed + i, early_bonus=early_bonus)
         wins += 1 if won else 0
         survived.append(w)
     return {"win_rate": wins / sims, "median_waves": median(survived), "sims": sims}
@@ -299,6 +302,17 @@ def main():
         print(f"  win rate     : {r['win_rate']:.1%}")
         print(f"  median waves : {r['median_waves']}")
         print(f"  verdict      : {verdict(r['win_rate'], band)}\n")
+
+    # If the map defines a "call the wave early" bonus, show its effect on the
+    # reference board (an upper bound — the sim can't charge the prep-time cost).
+    early = cfg["economy"].get("earlyCallBonus", 0)
+    if early:
+        ref = STRATEGIES["reference board"]
+        r = evaluate(ref, cfg, args.sims, args.seed, early_bonus=early)
+        print(f"reference + call early (+{early}/wave)  [{', '.join(ref)}]")
+        print(f"  win rate     : {r['win_rate']:.1%}")
+        print(f"  median waves : {r['median_waves']}")
+        print(f"  note         : upper bound; steady reference above is the band gauge\n")
 
 
 if __name__ == "__main__":

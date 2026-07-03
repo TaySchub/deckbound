@@ -50,6 +50,10 @@ const RULES = {
   startLives: BAL.economy.startLives,
   upgradeCost: BAL.economy.upgradeCost,
   earnPerWave: BAL.economy.earnPerWave,
+  // "Call the wave early" bonus: full value if you start the wave the instant
+  // prep begins, decaying linearly to 0 over earlyCallWindow seconds.
+  earlyCallBonus: BAL.economy.earlyCallBonus || 0,
+  earlyCallWindow: BAL.economy.earlyCallWindow || 1,
 };
 
 // Per-tower ART only (not difficulty). Combat stats + upgrade deltas (cost,
@@ -226,7 +230,7 @@ const game = {
   selectedType: "arrow",
   towers: [], enemies: [], projectiles: [], particles: [],
   spawnQueue: [], spawnTimer: 0, waveHp: 0, waveSpeed: 0, waveInterval: 1,
-  killed: 0, coreHurtFlash: 0, shake: 0, elapsed: 0, fps: 0,
+  killed: 0, coreHurtFlash: 0, shake: 0, elapsed: 0, fps: 0, prepElapsed: 0,
   pointer: { x: -1, y: -1 },
   message: "", messageTimer: 0,
   lastRun: null, // { won, wave, killed, essence } — shown on the summary
@@ -251,6 +255,7 @@ function startRun() {
   game.waveIndex = 0;
   game.towers = []; game.enemies = []; game.projectiles = []; game.particles = [];
   game.spawnQueue = []; game.killed = 0; game.coreHurtFlash = 0;
+  game.prepElapsed = 0;
   game.lastRun = null;
   const deck = deckTypes();
   game.selectedType = deck.length ? deck[0].id : "arrow";
@@ -369,14 +374,29 @@ function tryUpgrade(t) {
   audio.upgrade();
 }
 
+// The currency you'd earn right now for calling the wave early — full value the
+// instant prep begins, decaying linearly to 0 over earlyCallWindow seconds.
+function earlyCallBonusNow() {
+  if (RULES.earlyCallBonus <= 0) return 0;
+  const remaining = 1 - game.prepElapsed / RULES.earlyCallWindow;
+  return Math.max(0, Math.round(RULES.earlyCallBonus * remaining));
+}
+
 function startNextWave() {
   if (game.phase !== "prep") return;
+  const bonus = earlyCallBonusNow();
   const w = WAVES[game.waveIndex];
   game.phase = "wave";
   game.spawnQueue = buildSpawnQueue(w);
   game.spawnTimer = 0;
   game.waveHp = w.hp; game.waveSpeed = w.speed; game.waveInterval = w.interval;
-  setMessage("Wave " + (game.waveIndex + 1) + " incoming!");
+  if (bonus > 0) {
+    game.currency += bonus;
+    setMessage("Called early — +" + bonus + " bonus!  Wave " + (game.waveIndex + 1) + " incoming!");
+    spawnFloatText(START_BTN.x + START_BTN.w / 2, START_BTN.y - 4, "+" + bonus, COLOR.gold);
+  } else {
+    setMessage("Wave " + (game.waveIndex + 1) + " incoming!");
+  }
   audio.waveStart();
 }
 
@@ -411,6 +431,7 @@ function update(step) {
   if (game.shake > 0) game.shake = Math.max(0, game.shake - step * 24);
   if (game.messageTimer > 0) game.messageTimer -= step;
   if (game.phase === "menu") { updateParticles(step); return; }
+  if (game.phase === "prep") game.prepElapsed += step;
 
   updateTowers(step);
   moveProjectiles(step);
@@ -513,7 +534,7 @@ function checkWaveEnd() {
   if (game.spawnQueue.length === 0 && game.enemies.length === 0) {
     game.currency += RULES.earnPerWave;
     if (game.waveIndex + 1 >= WAVES.length) { endRun(true); }
-    else { game.waveIndex++; game.phase = "prep"; setMessage("Wave cleared!  +" + RULES.earnPerWave + " — build up, then Start Wave", 4); }
+    else { game.waveIndex++; game.phase = "prep"; game.prepElapsed = 0; setMessage("Wave cleared!  +" + RULES.earnPerWave + " — build up, then Start Wave", 4); }
   }
 }
 
@@ -865,8 +886,17 @@ function drawStartButton(ctx) {
   }
   const hover = inRect(game.pointer, START_BTN);
   ctx.fillStyle = hover ? COLOR.core : "#2b3f66"; roundRect(ctx, START_BTN.x, START_BTN.y, START_BTN.w, START_BTN.h, 8); ctx.fill();
-  ctx.fillStyle = COLOR.ink; ctx.font = "bold 15px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText("▶  Start Wave " + (game.waveIndex + 1), START_BTN.x + START_BTN.w / 2, START_BTN.y + START_BTN.h / 2);
+  const bonus = earlyCallBonusNow();
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (bonus > 0) {
+    ctx.fillStyle = COLOR.ink; ctx.font = "bold 15px system-ui, sans-serif";
+    ctx.fillText("▶  Call Wave " + (game.waveIndex + 1), START_BTN.x + START_BTN.w / 2 - 22, START_BTN.y + START_BTN.h / 2);
+    ctx.fillStyle = COLOR.gold; ctx.font = "bold 13px system-ui, sans-serif";
+    ctx.fillText("+" + bonus, START_BTN.x + START_BTN.w - 32, START_BTN.y + START_BTN.h / 2);
+  } else {
+    ctx.fillStyle = COLOR.ink; ctx.font = "bold 15px system-ui, sans-serif";
+    ctx.fillText("▶  Start Wave " + (game.waveIndex + 1), START_BTN.x + START_BTN.w / 2, START_BTN.y + START_BTN.h / 2);
+  }
   ctx.textBaseline = "alphabetic";
 }
 

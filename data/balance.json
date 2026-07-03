@@ -5,7 +5,9 @@
     "startCurrency": 150,
     "startLives": 20,
     "earnPerWave": 40,
-    "upgradeCost": [0, 70, 100]
+    "upgradeCost": [0, 70, 100],
+    "earlyCallBonus": 18,
+    "earlyCallWindow": 8
   },
   "map": {
     "path": [

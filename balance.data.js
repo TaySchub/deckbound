@@ -14,7 +14,9 @@ window.BALANCE = {
       0,
       70,
       100
-    ]
+    ],
+    "earlyCallBonus": 18,
+    "earlyCallWindow": 8
   },
   "map": {
     "path": [
