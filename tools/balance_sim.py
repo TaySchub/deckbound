@@ -60,10 +60,33 @@ def load_config(path: str) -> dict:
     with open(path) as f:
         cfg = json.load(f)
     cfg.pop("_note", None)
-    for key in ("economy", "enemyTypes", "towers", "waves", "map"):
+    for key in ("economy", "enemyTypes", "towers", "waveGen", "map"):
         if key not in cfg:
             raise SystemExit(f"balance config missing '{key}': {path}")
     return cfg
+
+
+def wave_type_weights(n: int, unlock: dict) -> dict:
+    return {
+        "mote": max(0.15, 1.0 - 0.05 * n),
+        "runner": 0.7 if n >= unlock["runner"] else 0,
+        "swarm": (0.4 + 0.02 * n) if n >= unlock["swarm"] else 0,
+        "brute": (0.2 + 0.03 * n) if n >= unlock["brute"] else 0,
+    }
+
+
+def make_wave(n: int, cfg: dict) -> dict:
+    """Generate wave n from waveGen — mirrors main.js makeWave(). Deterministic."""
+    wg = cfg["waveGen"]
+    hp = round(wg["hpBase"] * wg["hpGrowth"] ** n)
+    speed = min(wg["speedMax"], wg["speedBase"] + wg["speedStep"] * n)
+    interval = max(wg["intervalMin"], wg["intervalBase"] - wg["intervalStep"] * n)
+    count = wg["baseCount"] + round(wg["countStep"] * n)
+    w = wave_type_weights(n, wg["typeUnlock"])
+    active = [k for k in w if w[k] > 0]
+    total_w = sum(w[k] for k in active)
+    comp = [[k, max(1, round((w[k] / total_w) * count))] for k in active]
+    return {"hp": hp, "speed": speed, "interval": interval, "comp": comp}
 
 
 def build_path(cfg: dict) -> dict:
@@ -229,11 +252,13 @@ def buy_upgrades(towers: list[dict], currency: float, upgrade_cost: list) -> flo
     return currency
 
 
-def play_game(build: list[str], cfg: dict, seed: int, early_bonus: float = 0.0) -> tuple[bool, int]:
-    """Play a full run with an economy-limited build-then-upgrade strategy.
+def play_game(build: list[str], cfg: dict, seed: int, early_bonus: float = 0.0,
+              max_waves: int | None = None) -> tuple[bool, int]:
+    """Play a run with an economy-limited build-then-upgrade strategy.
     early_bonus models a player who calls every wave early for the max bonus
     (the sim can't represent the prep-time cost, so this is a free-income upper
-    bound on the aggressive line — the steady reference uses early_bonus=0)."""
+    bound on the aggressive line — the steady reference uses early_bonus=0).
+    max_waves overrides waveGen.waveCount (used for endless survival testing)."""
     rng = random.Random(seed)
     econ = cfg["economy"]
     slots = cfg["map"]["slots"]
@@ -243,7 +268,9 @@ def play_game(build: list[str], cfg: dict, seed: int, early_bonus: float = 0.0) 
     towers: list[dict] = []
     next_slot = 0
 
-    for wi, wave in enumerate(cfg["waves"]):
+    total_waves = max_waves if max_waves is not None else cfg["waveGen"]["waveCount"]
+    for wi in range(total_waves):
+        wave = make_wave(wi, cfg)
         # prep: fill the next slots we can afford, in build order
         while next_slot < len(slots) and next_slot < len(build):
             kind = build[next_slot]
@@ -261,7 +288,7 @@ def play_game(build: list[str], cfg: dict, seed: int, early_bonus: float = 0.0) 
         lives -= leaked
         if lives <= 0:
             return False, wi
-    return True, len(cfg["waves"])
+    return True, total_waves
 
 
 def evaluate(build: list[str], cfg: dict, sims: int, base_seed: int, early_bonus: float = 0.0) -> dict:
@@ -313,6 +340,17 @@ def main():
         print(f"  win rate     : {r['win_rate']:.1%}")
         print(f"  median waves : {r['median_waves']}")
         print(f"  note         : upper bound; steady reference above is the band gauge\n")
+
+    # Endless groundwork: how far the reference gets when the run doesn't stop at
+    # waveCount. Difficulty signal for endless mode is MEDIAN WAVES SURVIVED (not
+    # win-rate) — it should be neither trivial (never dies) nor brutal.
+    ref = STRATEGIES["reference board"]
+    cap = 40
+    survived = sorted(play_game(ref, cfg, seed=args.seed + i, max_waves=cap)[1]
+                      for i in range(min(args.sims, 200)))
+    print(f"endless survival (reference, cap {cap})")
+    print(f"  median waves : {median(survived)}")
+    print(f"  note         : endless uses this, not win-rate; cap {cap} hit means 'survives indefinitely'\n")
 
 
 if __name__ == "__main__":

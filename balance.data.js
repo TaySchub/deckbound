@@ -1,7 +1,7 @@
 // AUTO-GENERATED from data/balance.json by tools/gen_balance.py.
 // Do NOT edit by hand — edit data/balance.json and re-run the generator.
 window.BALANCE = {
-  "_note": "Single source of truth for DIFFICULTY, ECONOMY, and MAP GEOMETRY. tools/balance_sim.py reads this file directly; the game reads it via the generated balance.data.js (run tools/gen_balance.py after editing). Only pure art (colors/shapes/blurbs) stays in main.js. Rule: if the balance sim needs a number to compute win-rate, it belongs in this file \u2014 including per-tower upgrade deltas ('up') and the map (path + slots).",
+  "_note": "Single source of truth for DIFFICULTY, ECONOMY, and MAP GEOMETRY. tools/balance_sim.py reads this file directly; the game reads it via the generated balance.data.js (run tools/gen_balance.py after editing). Only pure art (colors/shapes/blurbs) stays in main.js. Rule: if the balance sim needs a number to compute win-rate, it belongs in this file \u2014 including per-tower upgrade deltas ('up'), the map (path + slots), and the wave generator (waveGen).",
   "target_win_rate": [
     0.45,
     0.6
@@ -22,61 +22,97 @@ window.BALANCE = {
     "path": [
       {
         "x": -30,
-        "y": 100
+        "y": 70
       },
       {
-        "x": 170,
-        "y": 100
+        "x": 60,
+        "y": 70
       },
       {
-        "x": 170,
-        "y": 300
+        "x": 60,
+        "y": 350
       },
       {
-        "x": 400,
-        "y": 300
+        "x": 200,
+        "y": 350
       },
       {
-        "x": 400,
-        "y": 110
+        "x": 200,
+        "y": 70
       },
       {
-        "x": 640,
-        "y": 110
+        "x": 340,
+        "y": 70
       },
       {
-        "x": 640,
-        "y": 280
+        "x": 340,
+        "y": 350
       },
       {
-        "x": 760,
-        "y": 280
+        "x": 480,
+        "y": 350
+      },
+      {
+        "x": 480,
+        "y": 70
+      },
+      {
+        "x": 620,
+        "y": 70
+      },
+      {
+        "x": 620,
+        "y": 350
+      },
+      {
+        "x": 740,
+        "y": 350
+      },
+      {
+        "x": 740,
+        "y": 210
       }
     ],
     "slots": [
       {
-        "x": 300,
-        "y": 220
+        "x": 130,
+        "y": 150
       },
       {
-        "x": 520,
-        "y": 195
+        "x": 130,
+        "y": 290
       },
       {
-        "x": 110,
-        "y": 220
+        "x": 270,
+        "y": 150
       },
       {
-        "x": 300,
-        "y": 55
+        "x": 270,
+        "y": 290
       },
       {
-        "x": 700,
-        "y": 190
+        "x": 410,
+        "y": 150
       },
       {
-        "x": 470,
-        "y": 340
+        "x": 410,
+        "y": 290
+      },
+      {
+        "x": 550,
+        "y": 150
+      },
+      {
+        "x": 550,
+        "y": 290
+      },
+      {
+        "x": 680,
+        "y": 150
+      },
+      {
+        "x": 680,
+        "y": 290
       }
     ],
     "coreRadius": 24
@@ -168,184 +204,24 @@ window.BALANCE = {
       }
     }
   },
-  "waves": [
-    {
-      "hp": 75,
-      "speed": 50,
-      "interval": 1.0,
-      "comp": [
-        [
-          "mote",
-          7
-        ]
-      ]
+  "waveGen": {
+    "waveCount": 20,
+    "hpBase": 70,
+    "hpGrowth": 1.134,
+    "speedBase": 50,
+    "speedStep": 1.4,
+    "speedMax": 82,
+    "intervalBase": 1.0,
+    "intervalStep": 0.02,
+    "intervalMin": 0.5,
+    "baseCount": 6,
+    "countStep": 0.6,
+    "typeUnlock": {
+      "mote": 0,
+      "runner": 1,
+      "swarm": 2,
+      "brute": 4
     },
-    {
-      "hp": 90,
-      "speed": 53,
-      "interval": 0.95,
-      "comp": [
-        [
-          "mote",
-          6
-        ],
-        [
-          "runner",
-          4
-        ]
-      ]
-    },
-    {
-      "hp": 110,
-      "speed": 55,
-      "interval": 0.9,
-      "comp": [
-        [
-          "mote",
-          7
-        ],
-        [
-          "runner",
-          5
-        ],
-        [
-          "swarm",
-          4
-        ]
-      ]
-    },
-    {
-      "hp": 135,
-      "speed": 57,
-      "interval": 0.85,
-      "comp": [
-        [
-          "mote",
-          8
-        ],
-        [
-          "swarm",
-          9
-        ],
-        [
-          "runner",
-          4
-        ]
-      ]
-    },
-    {
-      "hp": 160,
-      "speed": 59,
-      "interval": 0.8,
-      "comp": [
-        [
-          "mote",
-          8
-        ],
-        [
-          "runner",
-          6
-        ],
-        [
-          "brute",
-          2
-        ]
-      ]
-    },
-    {
-      "hp": 190,
-      "speed": 61,
-      "interval": 0.76,
-      "comp": [
-        [
-          "swarm",
-          14
-        ],
-        [
-          "runner",
-          6
-        ],
-        [
-          "brute",
-          2
-        ]
-      ]
-    },
-    {
-      "hp": 220,
-      "speed": 63,
-      "interval": 0.72,
-      "comp": [
-        [
-          "mote",
-          9
-        ],
-        [
-          "brute",
-          3
-        ],
-        [
-          "runner",
-          7
-        ]
-      ]
-    },
-    {
-      "hp": 255,
-      "speed": 65,
-      "interval": 0.68,
-      "comp": [
-        [
-          "runner",
-          10
-        ],
-        [
-          "brute",
-          3
-        ],
-        [
-          "swarm",
-          9
-        ]
-      ]
-    },
-    {
-      "hp": 295,
-      "speed": 67,
-      "interval": 0.63,
-      "comp": [
-        [
-          "mote",
-          11
-        ],
-        [
-          "swarm",
-          12
-        ],
-        [
-          "brute",
-          4
-        ]
-      ]
-    },
-    {
-      "hp": 340,
-      "speed": 69,
-      "interval": 0.56,
-      "comp": [
-        [
-          "brute",
-          6
-        ],
-        [
-          "runner",
-          12
-        ],
-        [
-          "mote",
-          9
-        ]
-      ]
-    }
-  ]
+    "endless": false
+  }
 };

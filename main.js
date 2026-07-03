@@ -145,9 +145,38 @@ function pointAtDistance(dist) {
    3) WAVES
    ========================================================================= */
 
-// The 10-wave difficulty curve lives in data/balance.json (each wave: hp,
-// speed, interval, and comp = [[enemyType, count], ...]).
-const WAVES = BAL.waves;
+// Waves are GENERATED from data/balance.json's waveGen block (not an authored
+// table), so "more rounds" and "endless" fall out of one formula. makeWave(n)
+// is deterministic and mirrored in tools/balance_sim.py so the sim and game
+// agree on every wave. n is 0-indexed.
+const WG = BAL.waveGen;
+
+function waveTypeWeights(n) {
+  const u = WG.typeUnlock;
+  return {
+    mote:   Math.max(0.15, 1.0 - 0.05 * n),
+    runner: n >= u.runner ? 0.7 : 0,
+    swarm:  n >= u.swarm ? 0.4 + 0.02 * n : 0,
+    brute:  n >= u.brute ? 0.2 + 0.03 * n : 0,
+  };
+}
+
+function makeWave(n) {
+  const hp = Math.round(WG.hpBase * Math.pow(WG.hpGrowth, n));
+  const speed = Math.min(WG.speedMax, WG.speedBase + WG.speedStep * n);
+  const interval = Math.max(WG.intervalMin, WG.intervalBase - WG.intervalStep * n);
+  const count = WG.baseCount + Math.round(WG.countStep * n);
+  const w = waveTypeWeights(n);
+  const active = Object.keys(w).filter((k) => w[k] > 0);
+  const totalW = active.reduce((s, k) => s + w[k], 0);
+  const comp = active.map((k) => [k, Math.max(1, Math.round((w[k] / totalW) * count))]);
+  return { hp, speed, interval, comp };
+}
+
+// Finite mode plays waveGen.waveCount generated waves; getWave(n) also serves
+// waves past the authored count for endless (Feature 3b).
+const WAVES = Array.from({ length: WG.waveCount }, (_, n) => makeWave(n));
+function getWave(n) { return n < WAVES.length ? WAVES[n] : makeWave(n); }
 function buildSpawnQueue(wave) {
   const q = [];
   for (const [type, count] of wave.comp) for (let i = 0; i < count; i++) q.push(type);
@@ -232,6 +261,7 @@ const game = {
   towers: [], enemies: [], projectiles: [], particles: [],
   spawnQueue: [], spawnTimer: 0, waveHp: 0, waveSpeed: 0, waveInterval: 1,
   killed: 0, coreHurtFlash: 0, shake: 0, elapsed: 0, fps: 0, prepElapsed: 0,
+  score: 0, endless: false,
   pointer: { x: -1, y: -1 },
   message: "", messageTimer: 0,
   lastRun: null, // { won, wave, killed, essence } — shown on the summary
@@ -240,7 +270,12 @@ const game = {
 const START_BTN = { x: 470, y: 402, w: 210, h: 38 };
 const CONTINUE_BTN = { x: VIEW.w / 2 - 85, y: VIEW.h / 2 + 44, w: 170, h: 38 };
 const PLAY_BTN = { x: VIEW.w / 2 - 90, y: 372, w: 180, h: 44 };
+const MODE_BTN = { x: VIEW.w / 2 - 90, y: 328, w: 180, h: 30 };
 const TOOLBAR = { y: 398, cardW: 66, cardH: 44, gap: 6, startX: 8 };
+
+// Hub toggle: finite (default, has a win) vs endless (survival + score). Endless
+// removes the win condition, so it stays off until the player chooses it.
+let chosenEndless = false;
 
 function cardRect(i) {
   return { x: TOOLBAR.startX + i * (TOOLBAR.cardW + TOOLBAR.gap), y: TOOLBAR.y, w: TOOLBAR.cardW, h: TOOLBAR.cardH };
@@ -258,6 +293,8 @@ function startRun() {
   game.spawnQueue = []; game.killed = 0; game.coreHurtFlash = 0;
   game.prepElapsed = 0;
   game.selectedTower = null;
+  game.score = 0;
+  game.endless = chosenEndless;
   game.lastRun = null;
   const deck = deckTypes();
   game.selectedType = deck.length ? deck[0].id : "arrow";
@@ -300,6 +337,7 @@ function setupInput(canvas) {
       for (const b of shopButtonRects()) {
         if (inRect(p, b.rect)) { tryBuyShop(b.item); return; }
       }
+      if (inRect(p, MODE_BTN)) { chosenEndless = !chosenEndless; audio.build(); return; }
       if (inRect(p, PLAY_BTN)) { startRun(); return; }
       return;
     }
@@ -403,7 +441,7 @@ function earlyCallBonusNow() {
 function startNextWave() {
   if (game.phase !== "prep") return;
   const bonus = earlyCallBonusNow();
-  const w = WAVES[game.waveIndex];
+  const w = getWave(game.waveIndex);
   game.phase = "wave";
   game.spawnQueue = buildSpawnQueue(w);
   game.spawnTimer = 0;
@@ -559,6 +597,7 @@ function applyDamage(enemy, dmg) {
     game.enemies = game.enemies.filter((e) => e !== enemy);
     game.killed++;
     game.currency += enemy.reward;
+    game.score += enemy.reward;
     spawnKillBurst(enemy.x, enemy.y, ENEMY_TYPES[enemy.typeId].color);
     spawnFloatText(enemy.x, enemy.y - 14, "+" + enemy.reward, COLOR.gold);
     audio.kill();
@@ -572,7 +611,9 @@ function checkWaveEnd() {
   if (game.phase !== "wave") return;
   if (game.spawnQueue.length === 0 && game.enemies.length === 0) {
     game.currency += RULES.earnPerWave;
-    if (game.waveIndex + 1 >= WAVES.length) { endRun(true); }
+    // Finite mode wins after the last authored wave; endless never wins — it
+    // keeps generating waves (getWave past WAVES.length) until you lose.
+    if (!game.endless && game.waveIndex + 1 >= WAVES.length) { endRun(true); }
     else { game.waveIndex++; game.phase = "prep"; game.prepElapsed = 0; setMessage("Wave cleared!  +" + RULES.earnPerWave + " — build up, then Start Wave", 4); }
   }
 }
@@ -583,11 +624,15 @@ function checkLoss() {
 
 // Finish a run: award Essence (persisted) and show the summary.
 function endRun(won) {
+  // Endless runs end only by losing; wavesCleared is however many you finished.
   const wavesCleared = won ? WAVES.length : game.waveIndex;
   const essence = Math.max(1, Math.floor(wavesCleared / 2) + (won ? 3 : 0));
   META.essence += essence;
   saveMeta();
-  game.lastRun = { won, wave: won ? WAVES.length : game.waveIndex + 1, killed: game.killed, essence };
+  game.lastRun = {
+    won, endless: game.endless, killed: game.killed, essence, score: game.score,
+    wave: won ? WAVES.length : game.waveIndex + 1,
+  };
   game.phase = won ? "won" : "lost";
   won ? audio.win() : audio.lose();
 }
@@ -737,6 +782,16 @@ function drawMenu(ctx) {
     else { ctx.fillStyle = affordable ? COLOR.essence : COLOR.bad; ctx.fillText("✦ " + b.item.cost, b.rect.x + b.rect.w - 12, b.rect.y + 25); }
     ctx.textAlign = "left";
   }
+
+  // Mode toggle (Finite vs Endless).
+  const modeHover = inRect(game.pointer, MODE_BTN);
+  ctx.fillStyle = modeHover ? "#26324a" : "#1b2230";
+  roundRect(ctx, MODE_BTN.x, MODE_BTN.y, MODE_BTN.w, MODE_BTN.h, 8); ctx.fill();
+  ctx.strokeStyle = chosenEndless ? COLOR.essence : "#4a5670"; ctx.lineWidth = 1;
+  roundRect(ctx, MODE_BTN.x, MODE_BTN.y, MODE_BTN.w, MODE_BTN.h, 8); ctx.stroke();
+  ctx.fillStyle = COLOR.muted; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("Mode:  " + (chosenEndless ? "Endless ∞" : "Finite (20)"), VIEW.w / 2, MODE_BTN.y + MODE_BTN.h / 2);
+  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
 
   // Play button.
   const hover = inRect(game.pointer, PLAY_BTN);
@@ -1025,14 +1080,17 @@ function drawHUD(ctx) {
   const lowLives = game.lives > 0 && game.lives <= game.maxLives * 0.25;
   const pulse = lowLives ? 0.5 + 0.5 * Math.sin(game.elapsed * 9) : 0;
   ctx.fillStyle = lowLives ? `rgba(255,${60 - Math.round(30 * pulse)},${60 - Math.round(30 * pulse)},0.4)` : "rgba(0,0,0,0.4)";
-  ctx.fillRect(6, 6, 320, 26);
+  ctx.fillRect(6, 6, game.endless ? 408 : 320, 26);
   ctx.font = "bold 14px system-ui, sans-serif";
   drawHeartIcon(ctx, 14, 17, lowLives && pulse > 0.5 ? "#ffffff" : COLOR.bad);
   ctx.fillStyle = lowLives && pulse > 0.5 ? "#ffffff" : COLOR.bad; ctx.fillText("" + game.lives, 26, 11);
   drawCurrencyIcon(ctx, 76, 17, COLOR.gold);
   ctx.fillStyle = COLOR.gold; ctx.fillText("" + game.currency, 88, 11);
-  ctx.fillStyle = COLOR.ink; ctx.fillText("Wave " + Math.min(game.waveIndex + 1, WAVES.length) + "/" + WAVES.length, 160, 11);
-  ctx.fillStyle = COLOR.muted; ctx.font = "12px system-ui, sans-serif"; ctx.fillText(game.phase === "wave" ? "defending…" : "prep", 262, 12);
+  ctx.fillStyle = COLOR.ink;
+  const waveLabel = game.endless ? "Wave " + (game.waveIndex + 1) : "Wave " + Math.min(game.waveIndex + 1, WAVES.length) + "/" + WAVES.length;
+  ctx.fillText(waveLabel, 160, 11);
+  if (game.endless) { ctx.fillStyle = COLOR.essence; ctx.fillText("★ " + game.score, 250, 11); }
+  ctx.fillStyle = COLOR.muted; ctx.font = "12px system-ui, sans-serif"; ctx.fillText(game.phase === "wave" ? "defending…" : "prep", game.endless ? 348 : 262, 12);
   ctx.textBaseline = "alphabetic";
 }
 
@@ -1045,14 +1103,19 @@ function drawMessage(ctx) {
 function drawSummary(ctx) {
   ctx.fillStyle = "rgba(8,10,15,0.82)"; ctx.fillRect(0, 0, VIEW.w, VIEW.h);
   ctx.textAlign = "center";
-  const r = game.lastRun || { won: false, wave: 1, killed: 0, essence: 0 };
+  const r = game.lastRun || { won: false, wave: 1, killed: 0, essence: 0, endless: false, score: 0 };
+  const endless = !!r.endless;
   ctx.fillStyle = r.won ? COLOR.good : COLOR.bad; ctx.font = "bold 40px system-ui, sans-serif";
-  ctx.fillText(r.won ? "VICTORY" : "DEFEAT", VIEW.w / 2, VIEW.h / 2 - 46);
+  ctx.fillText(r.won ? "VICTORY" : (endless ? "RUN OVER" : "DEFEAT"), VIEW.w / 2, VIEW.h / 2 - 58);
   ctx.fillStyle = COLOR.ink; ctx.font = "15px system-ui, sans-serif";
-  ctx.fillText(r.won ? "You survived all " + WAVES.length + " waves." : "Reached wave " + r.wave + " of " + WAVES.length + ".", VIEW.w / 2, VIEW.h / 2 - 14);
-  ctx.fillText("Enemies destroyed: " + r.killed, VIEW.w / 2, VIEW.h / 2 + 8);
+  const sub = r.won ? "You survived all " + WAVES.length + " waves."
+    : endless ? "Endless run — you reached wave " + r.wave + "."
+    : "Reached wave " + r.wave + " of " + WAVES.length + ".";
+  ctx.fillText(sub, VIEW.w / 2, VIEW.h / 2 - 30);
+  ctx.fillText("Enemies destroyed: " + r.killed, VIEW.w / 2, VIEW.h / 2 - 8);
+  if (endless) { ctx.fillStyle = COLOR.essence; ctx.font = "bold 17px system-ui, sans-serif"; ctx.fillText("★ Score: " + (r.score || 0), VIEW.w / 2, VIEW.h / 2 + 15); }
   ctx.fillStyle = COLOR.essence; ctx.font = "bold 16px system-ui, sans-serif";
-  ctx.fillText("✦ +" + r.essence + " Essence earned", VIEW.w / 2, VIEW.h / 2 + 32);
+  ctx.fillText("✦ +" + r.essence + " Essence earned", VIEW.w / 2, VIEW.h / 2 + (endless ? 36 : 30));
   const hover = inRect(game.pointer, CONTINUE_BTN);
   ctx.fillStyle = hover ? COLOR.core : "#2b3f66"; roundRect(ctx, CONTINUE_BTN.x, CONTINUE_BTN.y, CONTINUE_BTN.w, CONTINUE_BTN.h, 8); ctx.fill();
   ctx.fillStyle = COLOR.ink; ctx.font = "bold 15px system-ui, sans-serif"; ctx.textBaseline = "middle";

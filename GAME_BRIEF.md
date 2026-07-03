@@ -54,6 +54,14 @@ here so the brief stays honest:
   starting waves promptly (does not change the no-clock prep).
 - **Per-tower targeting priority** — each tower can be set to First / Last /
   Strong / Close, changed live by selecting the tower.
+- **Larger map + generated waves** — a longer, more-winding single map (still one
+  16:9 map, so multi-map stays parked) and a wave *generator* (`waveGen`) that
+  replaces the fixed 10-wave table, producing wave N from a formula. Finite play
+  now runs ~20 formula-scaled rounds and still ends in a win.
+- **Endless groundwork (off by default)** — a finite/endless hub toggle, wave
+  counter, and score. Endless keeps generating waves until you lose (survival +
+  score). **Default stays finite with the win condition; whether to offer/keep
+  endless — which removes the win condition — is an open developer decision.**
 
 ## Constraints (from the developer profile)
 Beginner developer; agents do the building. Web game in HTML5 + JavaScript on GitHub Pages, tested on Mac + iPhone. Phaser 3 if the real-time action warrants it; plain HTML/CSS/JavaScript is fine if simpler. ~12–15 hrs/week. General-audience content. No monetization now (keep it addable later). **Original theme and assets only — no branded or trademarked content.**
