@@ -696,7 +696,8 @@ function updateTowers(step) {
 function fireProjectile(t, target) {
   const def = TOWER_BY_ID[t.typeId];
   game.projectiles.push({
-    x: t.x, y: t.y, target, speed: def.behavior === "single" && t.typeId === "sniper" ? 520 : 360,
+    x: t.x, y: t.y, x0: t.x, y0: t.y, typeId: t.typeId, target,
+    speed: def.behavior === "single" && t.typeId === "sniper" ? 520 : 360,
     damage: t.damage, radius: t.typeId === "cannon" ? 6 : 4, behavior: def.behavior, color: def.color,
     splash: t.splash, slowDur: t.slowDur, slowFactor: t.slowFactor,
   });
@@ -1225,8 +1226,44 @@ function drawEnemies(ctx) {
   }
 }
 
+// Each tower's shot is themed to how that customer eats: a thrown fork, a flash,
+// a gulp-glob, kid grab-sparks, and the Slurper's straw shooting out to the dish.
 function drawProjectiles(ctx) {
-  for (const p of game.projectiles) { ctx.fillStyle = p.color || COLOR.projectile; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); }
+  for (const p of game.projectiles) {
+    const tx = p.target ? p.target.x : p.x + 1, ty = p.target ? p.target.y : p.y;
+    const ang = Math.atan2(ty - p.y, tx - p.x);
+    if (p.typeId === "sniper") {
+      // Milkshake Slurper — a candy-striped straw stretching from the customer to the dish.
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = "#0b0e14"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(p.x0, p.y0); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.strokeStyle = "#f4f7fb"; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(p.x0, p.y0); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.save(); ctx.strokeStyle = "#e5484d"; ctx.lineWidth = 1.4; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(p.x0, p.y0); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = "#f4f7fb"; ctx.strokeStyle = "#0b0e14"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, 7); ctx.fill(); ctx.stroke();   // straw tip
+    } else if (p.typeId === "arrow") {
+      // The Regular — a fork thrown tines-first.
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+      ctx.strokeStyle = "#c3ccdb"; ctx.lineCap = "round"; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(1, 0); ctx.stroke();   // handle
+      ctx.lineWidth = 1.6;
+      for (const dy of [-2.4, 0, 2.4]) { ctx.beginPath(); ctx.moveTo(1, dy); ctx.lineTo(7, dy); ctx.stroke(); }   // tines forward
+      ctx.restore();
+    } else if (p.typeId === "frost") {
+      // The Photographer — a soft flash orb.
+      ctx.globalAlpha = 0.4; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 2.4, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = "#eaffff"; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, 7); ctx.fill();
+    } else if (p.typeId === "cannon") {
+      // Big Appetite — a hungry gulp-glob.
+      ctx.fillStyle = p.color; ctx.strokeStyle = "#7a3a12"; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 1.3, 0, 7); ctx.fill(); ctx.stroke();
+    } else if (p.typeId === "zap") {
+      // The Kids' Table — a tiny fast grab-spark with a short trail.
+      ctx.strokeStyle = p.color; ctx.globalAlpha = 0.5; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(p.x - Math.cos(ang) * 7, p.y - Math.sin(ang) * 7); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = "#fff6c8"; drawSpark4(ctx, p.x, p.y, 4);
+    } else {
+      ctx.fillStyle = p.color || COLOR.projectile; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 }
 
 // A little 4-point sparkle (camera flash / chef's-kiss shine).
