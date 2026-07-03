@@ -6,6 +6,24 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **Larger map, generated waves, and endless groundwork** (developer-approved
+  post-v1 addition, beyond the frozen v1 scope).
+  - **Bigger map**: a longer, more-winding single map — a six-lane serpentine
+    (~2300 px vs ~1350) with 10 tower slots — all in `data/balance.json` (`map`),
+    so the game and sim both use it. Still one 16:9 map (multi-map stays parked).
+  - **Wave generation**: the fixed 10-wave table is replaced by a `waveGen`
+    formula block; `makeWave(n)` (mirrored in `tools/balance_sim.py`) produces
+    wave n's hp/speed/interval/composition from base parameters. Finite play now
+    runs 20 formula-scaled rounds and still ends in a win. Re-tuned so the sim's
+    reference strategy reads ~55.5% — inside the 45–60% band (`hpGrowth` 1.134,
+    `countStep` 0.6).
+  - **Endless groundwork** (off by default): a finite/endless hub toggle, a wave
+    counter, and a score. Endless keeps generating waves until you lose
+    (survival + score) — verified by the sim's median-waves-survived metric, not
+    win-rate. **Default is finite with the win condition intact; whether to
+    offer/keep endless is flagged for the developer (it removes the win.)**
+  - Files: `data/balance.json`, `main.js`, `index.html`, `balance.data.js`
+    (generated), `tools/balance_sim.py`, `docs/design-bigger-map-endless.md`.
 - **Per-tower targeting priority** (developer-approved post-v1 addition). Each
   placed tower now has a targeting mode — **First** (furthest along the path,
   default), **Last**, **Strong** (most HP), **Close** (nearest to the tower).
