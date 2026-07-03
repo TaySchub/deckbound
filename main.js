@@ -763,7 +763,7 @@ function drawMenu(ctx) {
     roundRect(ctx, dx, 168, 64, 78, 8); ctx.stroke();
     drawCustomer(ctx, def.id, dx + 32, 199, 11, def.color);
     ctx.fillStyle = COLOR.ink; ctx.font = "bold 9px system-ui, sans-serif"; ctx.textAlign = "center";
-    ctx.fillText(def.name, dx + 32, 226);
+    ctx.fillText(fitText(ctx, def.name, 60), dx + 32, 226);
     ctx.fillStyle = COLOR.gold; ctx.font = "10px system-ui, sans-serif";
     ctx.fillText("◆" + def.cost, dx + 32, 240);
     ctx.textAlign = "left";
@@ -1082,7 +1082,7 @@ function drawToolbar(ctx) {
     ctx.lineWidth = selected ? 2 : 1; ctx.strokeStyle = selected ? def.color : (hover ? "#4a5670" : "#2a3242"); roundRect(ctx, r.x, r.y, r.w, r.h, 6); ctx.stroke();
     ctx.globalAlpha = affordable ? 1 : 0.4;
     drawCustomer(ctx, def.id, r.x + 15, r.y + r.h / 2, 8, def.color);
-    ctx.fillStyle = COLOR.ink; ctx.font = "bold 9px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.fillText(def.name, r.x + 28, r.y + 17);
+    ctx.fillStyle = COLOR.ink; ctx.font = "bold 9px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.fillText(fitText(ctx, def.name, r.w - 30), r.x + 28, r.y + 17);
     ctx.fillStyle = affordable ? COLOR.gold : COLOR.bad; ctx.font = "11px system-ui, sans-serif"; ctx.fillText("◆" + def.cost, r.x + 28, r.y + 33);
     ctx.globalAlpha = 1;
   }
@@ -1255,4 +1255,14 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+// Trim a label with an ellipsis so it fits maxWidth on the tiny cards (the
+// themed customer names are longer than the old Arrow/Cannon ones). Set the
+// font before calling. Full names still show in the toolbar blurb + in-run panel.
+function fitText(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let s = text;
+  while (s.length > 1 && ctx.measureText(s + "…").width > maxWidth) s = s.slice(0, -1);
+  return s + "…";
 }
