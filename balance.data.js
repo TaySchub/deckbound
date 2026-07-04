@@ -160,17 +160,16 @@ window.BALANCE = {
     },
     "cannon": {
       "name": "Big Appetite",
-      "blurb": "Inhales everything nearby (splash)",
+      "blurb": "Grabs one dish and takes a huge, slow bite (single-target)",
       "cost": 85,
-      "range": 118,
-      "damage": 24,
-      "cooldown": 1.3,
-      "behavior": "splash",
-      "splash": 46,
+      "range": 104,
+      "damage": 90,
+      "cooldown": 2.4,
+      "behavior": "single",
       "up": {
-        "damage": 15,
-        "splash": 10,
-        "cooldownMul": 0.9
+        "damage": 45,
+        "range": 8,
+        "cooldownMul": 0.92
       }
     },
     "frost": {

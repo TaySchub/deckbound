@@ -544,6 +544,7 @@ function tryBuild(slotIndex) {
     range: def.range, damage: def.damage, cooldown: def.cooldown,
     splash: def.splash || 0, slowFactor: def.slowFactor || 1, slowDur: def.slowDur || 0,
     cdTimer: 0, upgradeFlash: 0, targeting: "first",
+    lungeTimer: 0, lungeAngle: 0,   // brief lunge-toward-target on attack (drawTowers)
   });
   spawnRing(s.x, s.y, def.color, 34, 0.4);
   audio.build();
@@ -686,6 +687,7 @@ function pickTarget(t) {
 function updateTowers(step) {
   for (const t of game.towers) {
     if (t.upgradeFlash > 0) t.upgradeFlash -= step;
+    if (t.lungeTimer > 0) t.lungeTimer -= step;
     t.cdTimer -= step;
     if (t.cdTimer > 0) continue;
     const target = pickTarget(t);
@@ -693,8 +695,20 @@ function updateTowers(step) {
   }
 }
 
+const LUNGE_DUR = 0.24;   // seconds a tower spends lunging toward its target on attack
+
 function fireProjectile(t, target) {
   const def = TOWER_BY_ID[t.typeId];
+  // Big Appetite doesn't throw anything — he bites the dish right where it sits on
+  // the belt: instant damage + a big toothy CHOMP over the target.
+  if (t.typeId === "cannon") {
+    const tx = target.x, ty = target.y;
+    t.lungeTimer = LUNGE_DUR; t.lungeAngle = Math.atan2(ty - t.y, tx - t.x);   // lunge in; his mouth does the chomp
+    applyDamage(target, t.damage);
+    spawnBite(tx, ty, "#c98a45");   // crumb spray at the dish
+    audio.shoot(t.typeId);
+    return;
+  }
   game.projectiles.push({
     x: t.x, y: t.y, x0: t.x, y0: t.y, typeId: t.typeId, target,
     speed: def.behavior === "single" && t.typeId === "sniper" ? 520 : 360,
@@ -724,6 +738,7 @@ function resolveHit(p) {
     if (game.enemies.includes(p.target)) { p.target.slowTimer = p.slowDur; p.target.slowFactor = Math.min(p.target.slowFactor, p.slowFactor); }
   } else {
     applyDamage(p.target, p.damage);
+    if (p.typeId === "cannon") spawnBite(hx, hy, p.color);   // Big Appetite's heavy single bite
   }
 }
 
@@ -787,6 +802,15 @@ function spawnKillBurst(x, y, color) {
   for (let i = 0; i < 10; i++) {
     const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 130;
     game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.6 + Math.random() * 2, life: 0.35 + Math.random() * 0.3, maxLife: 0.65, color: crumbs[i % crumbs.length] });
+  }
+}
+// A big single CHOMP for Big Appetite — a heavy bite ring + a chunky crumb spray.
+function spawnBite(x, y, color) {
+  spawnRing(x, y, "#ffe1b0", 30, 0.26);
+  const crumbs = ["#e8c58a", "#c98a45", color];
+  for (let i = 0; i < 8; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 70 + Math.random() * 130;
+    game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2 + Math.random() * 2.4, life: 0.32 + Math.random() * 0.28, maxLife: 0.6, color: crumbs[i % crumbs.length] });
   }
 }
 function spawnUpgradeSparkles(t) {
@@ -1415,12 +1439,16 @@ function drawBigAppetite(ctx, cx, cy, r, color, opts) {
   // Rosy chubby cheeks.
   ctx.fillStyle = "rgba(255,140,110,0.4)";
   ctx.beginPath(); ctx.arc(cx - headR * 0.66, hy + headR * 0.24, headR * 0.28, 0, 7); ctx.arc(cx + headR * 0.66, hy + headR * 0.24, headR * 0.28, 0, 7); ctx.fill();
-  // Huge open mouth — the identity: dark maw, red interior, a tongue.
-  const mCy = hy + headR * 0.34, mRx = headR * 0.46, mRy = headR * 0.42;
+  // Huge open mouth — the identity: dark maw, red interior, a tongue. It snaps shut
+  // when `bite` rises (the chomp is now *his* mouth, synced to the lunge).
+  const bite = opts.bite || 0;
+  const mCy = hy + headR * 0.34, mRx = headR * 0.46, mRy = headR * 0.42 * (1 - bite * 0.82);
   ctx.fillStyle = "#2a0d0d"; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.ellipse(cx, mCy, mRx, mRy, 0, 0, 7); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = "#d0524f"; ctx.beginPath(); ctx.ellipse(cx, mCy + mRy * 0.42, mRx * 0.66, mRy * 0.42, 0, 0, Math.PI); ctx.fill();   // tongue
-  ctx.fillStyle = "#f4f7ff"; ctx.fillRect(cx - mRx * 0.7, mCy - mRy * 0.98, mRx * 1.4, mRy * 0.2);   // upper teeth strip
+  if (bite < 0.6) { ctx.fillStyle = "#d0524f"; ctx.beginPath(); ctx.ellipse(cx, mCy + mRy * 0.42, mRx * 0.66, mRy * 0.42, 0, 0, Math.PI); ctx.fill(); }   // tongue
+  ctx.fillStyle = "#f4f7ff";
+  ctx.fillRect(cx - mRx * 0.7, mCy - mRy * 0.98, mRx * 1.4, headR * 0.09);   // upper teeth
+  if (bite > 0.12) ctx.fillRect(cx - mRx * 0.7, mCy + mRy * 0.98 - headR * 0.09, mRx * 1.4, headR * 0.09);   // lower teeth clamp shut
   // Eager eyes with raised brows, above the mouth.
   const eyeY = hy - headR * 0.24, eyeDx = headR * 0.34, eyeR = Math.max(1.3, headR * 0.17);
   ctx.fillStyle = MDARK;
@@ -1644,10 +1672,19 @@ function drawTowers(ctx) {
     const def = TOWER_BY_ID[t.typeId];
     const idx = t.level - 1, radius = 13 + idx * 2;
     const glowStrength = 0.12 + idx * 0.12 + Math.max(0, t.upgradeFlash);
+    // Lunge toward the target on attack: peaks mid-animation, back to rest at the ends.
+    let ox = 0, oy = 0;
+    if (t.lungeTimer > 0) {
+      const amp = Math.sin((1 - t.lungeTimer / LUNGE_DUR) * Math.PI) * (radius * 0.85);
+      ox = Math.cos(t.lungeAngle) * amp; oy = Math.sin(t.lungeAngle) * amp;
+    }
     ctx.globalAlpha = Math.min(0.6, glowStrength); ctx.fillStyle = def.glow;
-    ctx.beginPath(); ctx.arc(t.x, t.y, radius + 10, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(t.x + ox, t.y + oy, radius + 10, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     const justFired = t.cdTimer > t.cooldown - 0.14;
-    drawCustomer(ctx, t.typeId, t.x, t.y, radius, def.color, { level: t.level, firing: justFired });
+    // Big Appetite's mouth snaps shut around the peak of the lunge.
+    let bite = 0;
+    if (t.typeId === "cannon" && t.lungeTimer > 0) { const pr = 1 - t.lungeTimer / LUNGE_DUR; bite = Math.max(0, 1 - Math.abs(pr - 0.55) / 0.3); }
+    drawCustomer(ctx, t.typeId, t.x + ox, t.y + oy, radius, def.color, { level: t.level, firing: justFired, bite });
     for (let i = 0; i < t.maxLevel; i++) { ctx.beginPath(); ctx.arc(t.x - 8 + i * 8, t.y - radius - 16, 3, 0, Math.PI * 2); ctx.fillStyle = i < t.level ? COLOR.upgradeSpark : "#39404f"; ctx.fill(); }
     if (distance(game.pointer, t) <= 18 && t.level < t.maxLevel) { ctx.fillStyle = game.currency >= RULES.upgradeCost[t.level] ? COLOR.good : COLOR.bad; ctx.font = "11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText("next course " + RULES.upgradeCost[t.level], t.x, t.y - radius - 24); }
   }
