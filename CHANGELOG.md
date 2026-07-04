@@ -39,6 +39,25 @@ Format is deliberately simple and plain-language.
   historical `deckbound-retheme-prompt.md` naming map. Balance ease: Big Appetite
   cooldown **3.0 → 2.8s** — reference build **53.0% (BALANCED)**. (Flagged for the
   audio branch: some attack *sounds* no longer match the reworked attacks.)
+- **Docs consolidated: one repo map, stale facts fixed, history archived**
+  (docs task; developer-approved 2026-07-04). The repo map was written in five
+  places and two copies had drifted (AGENTS.md said `main.js` was "~950 lines"
+  — it's ~2,000; README said "10 waves" — it's 20, generated). Now:
+  - **`CLAUDE.md` holds THE map** ("Where things live") plus a new **code
+    landmarks** index for `main.js` (function → purpose, so agents stop
+    re-scanning a 2,000-line file); `AGENTS.md`'s map section is a pointer,
+    and its fossilized v1-backlog snapshot is replaced by "read Issues live."
+  - **`README.md` status** updated to the shipped post-v1 reality.
+  - **`docs/archive/`** created (with an index README): `FIRST-NIGHT.md`,
+    `SETUP-RUNBOOK.md`, `deckbound-retheme-prompt.md`, and
+    `design-bigger-map-endless.md` moved in — superseded records, kept but
+    clearly out of the way; inbound links fixed.
+  - **The untracked `UPGRADES-HANDOFF.md` became pinned Issue #54** (the
+    tower-upgrades rework plan of record) — it was the next feature's entire
+    design state sitting uncommitted on one machine; now it's versioned and
+    visible to every agent. The file is deleted.
+  Files: `CLAUDE.md`, `AGENTS.md`, `README.md`, `docs/FRANCHISE_BACKBONE.md`
+  (link), `docs/archive/*`.
 - **Target win-rate band tightened: 45–60% → 50–60%** (developer decision,
   2026-07-04). Balance changes now aim for a coin-flip-or-better reference
   game: `data/balance.json` `target_win_rate` is `[0.50, 0.60]`. The band

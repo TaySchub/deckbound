@@ -17,10 +17,12 @@ or see `SETUP-AND-LAUNCH.md` for a tiny local web server if you prefer.)
 
 ## Status
 
-**Playable v1 is built** and live at <https://tayschub.github.io/deckbound/>:
-the full prep→wave→resolve loop with 5 towers, 4 enemy types, 10 waves, tower
-upgrades, and between-run meta-progression. Remaining v1 items (deck hand-draw,
-final playtest sign-off) live in GitHub Issues.
+**v1 shipped; post-v1 in progress** — live at <https://tayschub.github.io/deckbound/>:
+the full prep→wave→resolve loop with 5 customer towers (each with its own
+attack identity), 4 runaway foods, **20 generated waves** (win by surviving
+them all), tower upgrades, per-tower targeting, a call-the-wave-early bonus,
+an optional endless mode, and between-run meta-progression. The live backlog
+is GitHub Issues (next up: the tower-upgrades rework, pinned there).
 
 ## Tech
 
