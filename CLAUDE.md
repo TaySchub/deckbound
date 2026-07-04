@@ -19,8 +19,9 @@ session, confirm non-trivial work (`PROJECT.md` §5); during an unattended run,
 
 ## Your job is four things — you never do deep building yourself
 
-1. **Read the backlog.** The plan is the open Issues, in the order in `AGENTS.md`
-   (Foundation → Core → Hook → Depth → Milestone). Pick the next ready Issue.
+1. **Read the backlog.** The plan is the open GitHub Issues themselves —
+   pinned first, then by what's ready. No doc keeps a copy of the backlog;
+   don't trust one that does. Pick the next ready Issue.
 2. **Route it to a role.** Match the work to the right subagent (see below).
    A feature is the `implementer`; a numbers/mechanic question is the `designer`;
    a bug or test is `qa`; a design/tech question needing outside info is
@@ -37,27 +38,73 @@ session, confirm non-trivial work (`PROJECT.md` §5); during an unattended run,
    commits → PR with plain-language testing steps + a `CHANGELOG.md` entry →
    report to `#studio-feed` → **stop**. You never merge, release, or deploy.
 
-## Where things live (so you route and scope correctly)
+## Where things live — THE repo map (single source; other docs point here)
 
-- Game code: `index.html`, `main.js`, `style.css` (+ future `src/`).
-- Tunable numbers: `data/balance.json` is the single source of truth for
-  difficulty, economy, and the map (tower stats + upgrades, enemy types, waves,
-  economy, and the map's `path` + `slots`). `tools/balance_sim.py` reads it
-  directly; the game reads it via the generated `balance.data.js` — **run
-  `python3 tools/gen_balance.py` after editing the JSON.** Only art (colors/
-  shapes) stays in `main.js`. Changing gameplay numbers or the map anywhere else
-  is a bug.
-- The Issue backlog is the single roadmap. Don't create a parallel board.
+**Game code (the only build targets):**
+- `index.html` — page shell + canvas; its `<script>` tags carry `gen_balance`'s
+  `?v=` cache-bust stamps.
+- `main.js` — all game logic, canvas art, and procedural audio (~2,000 lines;
+  the `src/` module split is the planned next refactor). Landmarks below.
+- `style.css` — page styling around the canvas (no `image-rendering` override —
+  the art is smooth vector, not pixel art).
+
+**Data & pipeline:**
+- `data/balance.json` — single source of truth for difficulty, economy, waves
+  (`waveGen`), the map (`path`/`slots`), display names/blurbs, and
+  `target_win_rate` (currently 50–60%). **After editing it — or `main.js` —
+  run `python3 tools/gen_balance.py`** (regenerates `balance.data.js`,
+  re-stamps `index.html`; CI fails if you forget). Changing gameplay numbers
+  anywhere else is a bug; only pure art stays in `main.js`.
+- `balance.data.js` — generated mirror; never edit by hand.
+
+**Verification:**
+- `.github/workflows/ci.yml` — JS syntax, generated-file sync, sim band gate.
+- `tools/balance_sim.py` — the difficulty gauge (`--check` is the CI gate).
+- `tools/dev/harness.html` — contact sheet, seeded smoke run, play driver.
+
+**Docs:**
+- Law (edit only with the developer's say-so): `GAME_BRIEF.md` (frozen spec) ·
+  `PROJECT.md` (how we work) · `AGENTS.md` (orientation) · `AUTONOMY.md`
+  (overnight policy).
+- Canon & taste: `docs/FRANCHISE_BACKBONE.md` (cast/tone) · `docs/ART_STYLE.md`
+  (art rules + decision log) · `docs/art-refs/` (developer's visual refs).
+- `docs/ideas-parked.md` — graveyard; never build from it.
+- `docs/archive/` — superseded historical docs, kept for the record only.
+- `CHANGELOG.md` — one entry per merged change (required) · `README.md` +
+  `SETUP-AND-LAUNCH.md` — human-facing.
+
+The backlog is GitHub Issues — the single roadmap. Don't create a parallel one.
+
+## Code landmarks in `main.js` (grep to confirm; update this list when they move)
+
+- **Data merge:** `TOWER_ART`/`ENEMY_ART` (art-only) + `BAL` (balance.json) →
+  `TOWER_TYPES`/`ENEMY_TYPES`; economy in `RULES`.
+- **Waves:** `makeWave(n)`/`waveTypeWeights` (mirrored in `balance_sim.py`) ·
+  `getWave` (endless past `waveCount`) · `buildSpawnQueue`.
+- **Combat:** `updateTowers()` (per-type firing incl. sniper straw-lock + zap
+  multi pile-on) · `fireProjectile()` (cannon/zap/sniper act instantly; only
+  arrow + frost shots travel) · `resolveHit()` · `applyDamage()` ·
+  `pickTarget()` (First/Last/Strong/Close) · `moveEnemies()` (freeze → slow).
+- **Run loop & economy:** `startRun` · `startNextWave` + `earlyCallBonusNow` ·
+  `checkWaveEnd` · `endRun`; meta-progression in `META`/`SHOP`/`loadMeta`.
+- **Upgrades:** `tryUpgrade` applies `up` deltas from balance.json (sim mirror:
+  `apply_upgrade`/`buy_upgrades`); rework tracked in pinned Issue #54.
+- **Art:** `drawCustomer()` → `drawRegular`/`drawBigAppetite`/`drawPhotographer`/
+  `drawMilkshakeSlurper`/`drawKidsTable` · `drawFood()` + `drawFoodBites`/
+  `BITE_SPOTS` · `drawSlurpStraws` · particles via `spawn*`.
+- **UI:** `drawToolbar`/`drawHUD`/`drawSelectedTowerPanel` + `towerPanel()`
+  (geometry shared with input hit-testing) · `setupInput`.
+- **Audio:** the `audio` object (`voice`/`noiseBurst`/`env` + per-event
+  effects) — touch only on a dedicated audio branch.
 
 ## Sequencing rule while the game is one file
 
 `main.js` currently holds everything. **Run Issues sequentially, one worker on
 `main.js` at a time** — parallel edits to a single file cause nonstop merge
 conflicts, and parallel agents add real token + coordination overhead for no gain
-here. After the Core issues (#4–#7) work, the first refactor is to split
-`main.js` into modules (e.g. `src/engine.js`, `src/render.js`, `src/data.js`).
-*That* is the moment parallel domain workers (engine / frontend / balance) start
-paying off — not before.
+here. The next structural refactor is splitting `main.js` into modules (e.g.
+`src/engine.js`, `src/render.js`, `src/data.js`). *That* is the moment parallel
+domain workers (engine / frontend / balance) start paying off — not before.
 
 ## Verification (prefer deterministic checks over opinions)
 
@@ -85,8 +132,9 @@ Never hand the developer an unverified change to preview:**
 
 ## Human gates — never cross these without in-the-moment approval
 
-Merging to `main`, cutting a release, **enabling GitHub Pages / deploying**
-(Issue #2), installing a dependency, spending money, or changing repo settings.
+Merging to `main`, cutting a release, **deploying beyond the automatic
+Pages-on-merge**, installing a dependency, spending money, or changing repo
+settings.
 Also honor `PROJECT.md` §6 in full. When you hit a gate, stop and ask.
 
 ## Spend & safety

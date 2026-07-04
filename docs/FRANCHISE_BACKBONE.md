@@ -2,7 +2,8 @@
 
 The one-page through-line for the theme. This is the fiction the whole game hangs
 on; the mechanics never change to fit it. (For the frozen gameplay spec, see
-`GAME_BRIEF.md`; for the full re-theme plan, see `deckbound-retheme-prompt.md`.)
+`GAME_BRIEF.md`; the original re-theme plan is archived at
+`docs/archive/deckbound-retheme-prompt.md`; art rules live in `docs/ART_STYLE.md`.)
 
 ## Core relationship
 
