@@ -6,7 +6,7 @@
   reserve customers/perks (saved between runs), then Open for Service — seat &
   upgrade customers from your regulars, and eat waves of runaway dishes before
   they reach the trash chute. Win or lose, you earn Golden Forks and get stronger
-  over time. All game logic lives in main.js.
+  over time. All game code lives in src/ (DOM-free logic in src/engine.js).
 
   Plain HTML + CSS + JavaScript for now. We can add Phaser 3 later if the
   real-time action needs it (see GAME_BRIEF.md).
@@ -36,7 +36,7 @@
     <!--
       The <canvas> is where all game graphics are drawn. Its internal drawing
       size (800x450) is fixed here; CSS controls how big it looks on screen.
-      main.js draws the belt, the trash chute, and the running game loop onto it.
+      src/render.js draws the belt, the trash chute, and the whole scene onto it.
     -->
     <canvas id="game-canvas" width="800" height="450"
             aria-label="Deckbound game area: the conveyor belt and the trash chute"></canvas>
@@ -48,11 +48,19 @@
   </footer>
 
   <!-- Balance numbers (difficulty & economy), generated from data/balance.json
-       by tools/gen_balance.py. Loaded before main.js so window.BALANCE exists
-       when the game reads it. Deferred scripts run in order. -->
+       by tools/gen_balance.py. Loaded first so window.BALANCE exists when the
+       game reads it. Deferred scripts run in order. -->
   <script src="balance.data.js?v=46e2668b" defer></script>
 
-  <!-- The game code. 'defer' means it runs after the page has loaded. -->
-  <script src="main.js?v=09cb5401" defer></script>
+  <!-- The game code, split into modules (order matters; plain globals, no
+       bundler — double-clicking index.html still works):
+       data (constants + balance merge) -> engine (DOM-free logic) -> audio ->
+       art (pure draw fns) -> render (UI/scene) -> main (boot/input/loop). -->
+  <script src="src/data.js?v=25fc2cf2" defer></script>
+  <script src="src/engine.js?v=e8326af0" defer></script>
+  <script src="src/audio.js?v=a4651fd5" defer></script>
+  <script src="src/art.js?v=73c540a0" defer></script>
+  <script src="src/render.js?v=5775cd25" defer></script>
+  <script src="src/main.js?v=824a9e2f" defer></script>
 </body>
 </html>

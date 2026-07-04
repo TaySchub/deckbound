@@ -1,0 +1,527 @@
+/*
+  Deckbound — src/engine.js
+  All game logic and state: the game object, waves, towers/combat, enemies,
+  economy, meta-progression, and particle *data* (pure structs; drawing is
+  render.js's job). ZERO DOM / canvas / Web Audio references — this file must
+  stay loadable headless (tools/sim.mjs runs real games with it in Node).
+  Side effects (sounds, UI-anchored popups) go through the FX hooks below.
+*/
+
+/* Side-effect hooks the shell wires up (audio + UI-anchored effects). The
+   engine never touches Web Audio or the DOM directly — a headless run
+   (tools/sim.mjs, or the harness before wiring) leaves these as no-ops.
+   src/main.js points them at the real audio object + UI. */
+const FX = {
+  shoot(typeId) {}, hit() {}, kill() {}, leak() {}, upgrade() {}, build() {},
+  deny() {}, waveStart() {}, buy() {}, win() {}, lose() {}, calledEarly(bonus) {},
+};
+
+/* =========================================================================
+   1b) META-PROGRESSION — persisted in the browser (localStorage).
+   ========================================================================= */
+
+const META_KEY = "deckbound.meta.v1";
+function freshMeta() {
+  return { essence: 0, unlocked: ["arrow", "cannon", "frost", "zap"], boughtCurrency: false, boughtLives: false };
+}
+function loadMeta() {
+  try {
+    const s = localStorage.getItem(META_KEY);
+    if (s) return Object.assign(freshMeta(), JSON.parse(s));
+  } catch (e) { /* localStorage may be blocked (e.g. file://) — play without saving */ }
+  return freshMeta();
+}
+function saveMeta() {
+  try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {}
+}
+let META = freshMeta();
+
+// The Essence shop shown on the hub screen.
+const SHOP = [
+  { id: "sniper", label: "Reserve the Milkshake Slurper's seat", cost: 3, owned: () => META.unlocked.includes("sniper"), buy: () => META.unlocked.push("sniper") },
+  { id: "currency", label: "Cash float (+50 Tips)", cost: 2, owned: () => META.boughtCurrency, buy: () => (META.boughtCurrency = true) },
+  { id: "lives", label: "Forgiving inspector (+3 Health)", cost: 2, owned: () => META.boughtLives, buy: () => (META.boughtLives = true) },
+];
+
+// Your "deck": the tower cards you've unlocked (in a fixed display order).
+function deckTypes() {
+  return TOWER_TYPES.filter((t) => META.unlocked.includes(t.id));
+}
+
+/* =========================================================================
+   2) LEVEL
+   ========================================================================= */
+
+// Map geometry (path + tower slots) comes from data/balance.json via BAL.map,
+// so a map can be redesigned by editing data — no code change. The core sits at
+// the end of the path.
+const PATH = BAL.map.path;
+const CORE = { x: PATH[PATH.length - 1].x, y: PATH[PATH.length - 1].y, radius: BAL.map.coreRadius };
+const SLOTS = BAL.map.slots;
+
+function distance(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
+const SEGMENT_LENGTHS = PATH.slice(1).map((p, i) => distance(PATH[i], p));
+const PATH_LENGTH = SEGMENT_LENGTHS.reduce((sum, len) => sum + len, 0);
+function pointAtDistance(dist) {
+  if (dist <= 0) return { x: PATH[0].x, y: PATH[0].y };
+  let remaining = dist;
+  for (let i = 0; i < SEGMENT_LENGTHS.length; i++) {
+    const segLen = SEGMENT_LENGTHS[i];
+    if (remaining <= segLen) {
+      const t = remaining / segLen, a = PATH[i], b = PATH[i + 1];
+      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    }
+    remaining -= segLen;
+  }
+  return { x: PATH[PATH.length - 1].x, y: PATH[PATH.length - 1].y };
+}
+
+/* =========================================================================
+   3) WAVES
+   ========================================================================= */
+
+// Waves are GENERATED from data/balance.json's waveGen block (not an authored
+// table), so "more rounds" and "endless" fall out of one formula. makeWave(n)
+// is deterministic and mirrored in tools/balance_sim.py so the sim and game
+// agree on every wave. n is 0-indexed.
+const WG = BAL.waveGen;
+
+function waveTypeWeights(n) {
+  const u = WG.typeUnlock;
+  return {
+    mote:   Math.max(0.15, 1.0 - 0.05 * n),
+    runner: n >= u.runner ? 0.7 : 0,
+    swarm:  n >= u.swarm ? 0.4 + 0.02 * n : 0,
+    brute:  n >= u.brute ? 0.2 + 0.03 * n : 0,
+  };
+}
+
+function makeWave(n) {
+  const hp = Math.round(WG.hpBase * Math.pow(WG.hpGrowth, n));
+  const speed = Math.min(WG.speedMax, WG.speedBase + WG.speedStep * n);
+  const interval = Math.max(WG.intervalMin, WG.intervalBase - WG.intervalStep * n);
+  const count = WG.baseCount + Math.round(WG.countStep * n);
+  const w = waveTypeWeights(n);
+  const active = Object.keys(w).filter((k) => w[k] > 0);
+  const totalW = active.reduce((s, k) => s + w[k], 0);
+  const comp = active.map((k) => [k, Math.max(1, Math.round((w[k] / totalW) * count))]);
+  return { hp, speed, interval, comp };
+}
+
+// Finite mode plays waveGen.waveCount generated waves; getWave(n) also serves
+// waves past the authored count for endless (Feature 3b).
+const WAVES = Array.from({ length: WG.waveCount }, (_, n) => makeWave(n));
+function getWave(n) { return n < WAVES.length ? WAVES[n] : makeWave(n); }
+function buildSpawnQueue(wave) {
+  const q = [];
+  for (const [type, count] of wave.comp) for (let i = 0; i < count; i++) q.push(type);
+  for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
+  return q;
+}
+
+/* =========================================================================
+   5) GAME STATE
+   ========================================================================= */
+
+// phase: "menu" (hub/shop) | "prep" | "wave" | "won" | "lost"
+const game = {
+  canvas: null, ctx: null,
+  phase: "menu",
+  currency: 0, lives: 0, maxLives: 0, waveIndex: 0,
+  selectedType: "arrow",
+  selectedTower: null, // the placed tower whose targeting/upgrade panel is open
+  towers: [], enemies: [], projectiles: [], particles: [],
+  spawnQueue: [], spawnTimer: 0, waveHp: 0, waveSpeed: 0, waveInterval: 1,
+  killed: 0, coreHurtFlash: 0, shake: 0, elapsed: 0, fps: 0, prepElapsed: 0,
+  score: 0, endless: false,
+  pointer: { x: -1, y: -1 },
+  message: "", messageTimer: 0,
+  lastRun: null, // { won, wave, killed, essence } — shown on the summary
+};
+
+// Hub toggle: finite (default, has a win) vs endless (survival + score). Endless
+// removes the win condition, so it stays off until the player chooses it.
+let chosenEndless = false;
+
+// Begin a fresh run from the hub, applying permanent perks + your unlocked deck.
+function startRun() {
+  game.phase = "prep";
+  game.currency = RULES.startCurrency + (META.boughtCurrency ? 50 : 0);
+  game.maxLives = RULES.startLives + (META.boughtLives ? 3 : 0);
+  game.lives = game.maxLives;
+  game.waveIndex = 0;
+  game.towers = []; game.enemies = []; game.projectiles = []; game.particles = [];
+  game.spawnQueue = []; game.killed = 0; game.coreHurtFlash = 0;
+  game.prepElapsed = 0;
+  game.selectedTower = null;
+  game.score = 0;
+  game.endless = chosenEndless;
+  game.lastRun = null;
+  const deck = deckTypes();
+  game.selectedType = deck.length ? deck[0].id : "arrow";
+  setMessage("Pick a customer below, seat them at a table, then Send Out the food");
+}
+
+function setMessage(text, seconds = 3.5) { game.message = text; game.messageTimer = seconds; }
+
+function tryBuyShop(item) {
+  if (item.owned()) { FX.deny(); return; }
+  if (META.essence < item.cost) { FX.deny(); setMessage("Not enough Golden Forks (need " + item.cost + ")"); return; }
+  META.essence -= item.cost;
+  item.buy();
+  saveMeta();
+  FX.buy();
+}
+
+/* =========================================================================
+   7) PLAYER ACTIONS (build / upgrade / start wave)
+   ========================================================================= */
+
+function tryBuild(slotIndex) {
+  const def = TOWER_BY_ID[game.selectedType];
+  if (game.currency < def.cost) { FX.deny(); setMessage("Not enough Tips for " + def.name + " (need " + def.cost + ")"); return; }
+  game.currency -= def.cost;
+  const s = SLOTS[slotIndex];
+  game.towers.push({
+    slotIndex, x: s.x, y: s.y, typeId: def.id, level: 1, maxLevel: 3,
+    range: def.range, damage: def.damage, cooldown: def.cooldown,
+    splash: def.splash || 0, slowFactor: def.slowFactor || 1, slowDur: def.slowDur || 0,
+    freezeDur: def.freezeDur || 0, maxTargets: def.maxTargets || 1,
+    cdTimer: 0, upgradeFlash: 0, targeting: "first",
+    lungeTimer: 0, lungeAngle: 0,   // brief lunge-toward-target on attack (drawTowers)
+    slurpTarget: null, slurpShow: 0, slurpSoundTimer: 0,   // Milkshake Slurper's attached straw
+  });
+  spawnRing(s.x, s.y, def.color, 34, 0.4);
+  FX.build();
+}
+
+function tryUpgrade(t) {
+  if (t.level >= t.maxLevel) { FX.deny(); setMessage("Already served Dessert (max level)"); return; }
+  const cost = RULES.upgradeCost[t.level];
+  if (game.currency < cost) { FX.deny(); setMessage("Not enough Tips for the next course (need " + cost + ")"); return; }
+  game.currency -= cost;
+  t.level++;
+  const up = TOWER_BY_ID[t.typeId].up;
+  if (up.damage) t.damage += up.damage;
+  if (up.range) t.range += up.range;
+  if (up.cooldownMul) t.cooldown *= up.cooldownMul;
+  if (up.splash) t.splash += up.splash;
+  if (up.slowFactorAdd) t.slowFactor = Math.max(0.2, t.slowFactor + up.slowFactorAdd);
+  if (up.freezeDurAdd) t.freezeDur += up.freezeDurAdd;
+  t.upgradeFlash = 0.6;
+  spawnUpgradeSparkles(t);
+  FX.upgrade();
+}
+
+// The currency you'd earn right now for calling the wave early — full value the
+// instant prep begins, decaying linearly to 0 over earlyCallWindow seconds.
+function earlyCallBonusNow() {
+  if (RULES.earlyCallBonus <= 0) return 0;
+  const remaining = 1 - game.prepElapsed / RULES.earlyCallWindow;
+  return Math.max(0, Math.round(RULES.earlyCallBonus * remaining));
+}
+
+function startNextWave() {
+  if (game.phase !== "prep") return;
+  const bonus = earlyCallBonusNow();
+  const w = getWave(game.waveIndex);
+  game.phase = "wave";
+  game.spawnQueue = buildSpawnQueue(w);
+  game.spawnTimer = 0;
+  game.waveHp = w.hp; game.waveSpeed = w.speed; game.waveInterval = w.interval;
+  if (bonus > 0) {
+    game.currency += bonus;
+    setMessage("Called early — +" + bonus + " tip!  Wave " + (game.waveIndex + 1) + " incoming!");
+    FX.calledEarly(bonus);
+  } else {
+    setMessage("Wave " + (game.waveIndex + 1) + " incoming!");
+  }
+  FX.waveStart();
+}
+
+/* =========================================================================
+   9) UPDATE
+   ========================================================================= */
+
+function update(step) {
+  game.elapsed += step;
+  if (game.coreHurtFlash > 0) game.coreHurtFlash -= step;
+  if (game.shake > 0) game.shake = Math.max(0, game.shake - step * 24);
+  if (game.messageTimer > 0) game.messageTimer -= step;
+  if (game.phase === "menu") { updateParticles(step); return; }
+  if (game.phase === "prep") game.prepElapsed += step;
+
+  updateTowers(step);
+  moveProjectiles(step);
+  updateParticles(step);
+  if (game.phase === "wave") {
+    spawnWaveEnemies(step);
+    moveEnemies(step);
+    checkWaveEnd();
+    checkLoss();
+  }
+}
+
+function spawnWaveEnemies(step) {
+  if (game.spawnQueue.length === 0) return;
+  game.spawnTimer -= step;
+  if (game.spawnTimer <= 0) {
+    game.spawnTimer = game.waveInterval;
+    const typeId = game.spawnQueue.shift();
+    const et = ENEMY_TYPES[typeId];
+    const hp = Math.round(game.waveHp * et.hpMul);
+    game.enemies.push({ typeId, dist: 0, speed: game.waveSpeed * et.speedMul, hp, maxHp: hp, radius: et.radius, reward: et.reward, hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0 });
+  }
+}
+
+function moveEnemies(step) {
+  for (const e of game.enemies) {
+    let speed = e.speed;
+    // Frozen dishes are stopped dead; once thawed the slow lingers for the rest of slowTimer.
+    if (e.freezeTimer > 0) { e.freezeTimer -= step; speed = 0; }
+    else if (e.slowTimer > 0) { speed *= e.slowFactor; }
+    if (e.slowTimer > 0) { e.slowTimer -= step; if (e.slowTimer <= 0) e.slowFactor = 1; }
+    e.dist += speed * step;
+    const p = pointAtDistance(e.dist);
+    e.x = p.x; e.y = p.y;
+    if (e.hurtFlash > 0) e.hurtFlash -= step;
+    if (e.dist >= PATH_LENGTH) { e.reachedCore = true; game.lives = Math.max(0, game.lives - 1); game.coreHurtFlash = 0.35; game.shake = 6; FX.leak(); }
+  }
+  game.enemies = game.enemies.filter((e) => !e.reachedCore);
+}
+
+// The four targeting modes a player can set per tower. "first" (furthest along
+// the path) is the default and matches the balance sim's frontmost behavior.
+const TARGETING_MODES = [
+  ["first", "First"], ["last", "Last"], ["strong", "Strong"], ["close", "Close"],
+];
+
+function pickTarget(t) {
+  let best = null, bestKey = -Infinity;
+  for (const e of game.enemies) {
+    if (distance(t, e) > t.range) continue;
+    let key;
+    switch (t.targeting) {
+      case "last": key = -e.dist; break;        // least far along the path
+      case "strong": key = e.hp; break;         // most current HP
+      case "close": key = -distance(t, e); break; // nearest to the tower
+      default: key = e.dist;                    // "first": furthest along the path
+    }
+    if (key > bestKey) { bestKey = key; best = e; }
+  }
+  return best;
+}
+
+function updateTowers(step) {
+  for (const t of game.towers) {
+    if (t.upgradeFlash > 0) t.upgradeFlash -= step;
+    if (t.lungeTimer > 0) t.lungeTimer -= step;
+    if (t.slurpShow > 0) t.slurpShow -= step;
+    if (t.slurpSoundTimer > 0) t.slurpSoundTimer -= step;
+    t.cdTimer -= step;
+    // The Milkshake Slurper locks its straw onto one dish and keeps sipping fast
+    // until that dish dies or leaves range — then it latches onto the next.
+    if (t.typeId === "sniper") {
+      if (!t.slurpTarget || !game.enemies.includes(t.slurpTarget) || distance(t, t.slurpTarget) > t.range) t.slurpTarget = pickTarget(t);
+      if (t.slurpTarget) {
+        t.slurpShow = 0.12;   // keep the straw drawn between sips
+        if (t.cdTimer <= 0) {
+          fireProjectile(t, t.slurpTarget); t.cdTimer = t.cooldown;
+          if (t.slurpSoundTimer <= 0) { FX.shoot("sniper"); t.slurpSoundTimer = 0.32; }   // throttle the sip sound
+        }
+      }
+      continue;
+    }
+    if (t.cdTimer > 0) continue;
+    if (TOWER_BY_ID[t.typeId].behavior === "multi") {
+      // The Kids' Table sends `maxTargets` hands. They spread across the frontmost
+      // dishes; if fewer dishes than hands are in range, the spare hands pile onto
+      // the same dish (so one dish alone gets grabbed by all three kids).
+      const inRange = game.enemies.filter((e) => distance(t, e) <= t.range).sort((a, b) => b.dist - a.dist);
+      if (inRange.length) {
+        for (let i = 0; i < t.maxTargets; i++) fireProjectile(t, inRange[i % inRange.length]);
+        t.cdTimer = t.cooldown;
+      }
+    } else {
+      const target = pickTarget(t);
+      if (target) { fireProjectile(t, target); t.cdTimer = t.cooldown; }
+    }
+  }
+}
+
+const LUNGE_DUR = 0.24;   // seconds a tower spends lunging toward its target on attack
+
+function fireProjectile(t, target) {
+  const def = TOWER_BY_ID[t.typeId];
+  // Big Appetite doesn't throw anything — he bites the dish right where it sits on
+  // the belt: instant damage + a big toothy CHOMP over the target.
+  if (t.typeId === "cannon") {
+    const tx = target.x, ty = target.y;
+    t.lungeTimer = LUNGE_DUR; t.lungeAngle = Math.atan2(ty - t.y, tx - t.x);   // lunge in; his mouth does the chomp
+    applyDamage(target, t.damage);
+    spawnBite(tx, ty, "#c98a45");   // crumb spray at the dish
+    FX.shoot(t.typeId);
+    return;
+  }
+  // The Kids' Table grabs the dish right on the belt — a hand clenches on it.
+  if (t.typeId === "zap") {
+    applyDamage(target, t.damage);
+    spawnGrabHand(target.x, target.y, target.radius);
+    FX.shoot(t.typeId);
+    return;
+  }
+  // The Milkshake Slurper sips instantly up an attached straw (drawn by
+  // drawSlurpStraws); the sip sound is throttled in updateTowers.
+  if (t.typeId === "sniper") {
+    applyDamage(target, t.damage);
+    return;
+  }
+  game.projectiles.push({
+    x: t.x, y: t.y, x0: t.x, y0: t.y, typeId: t.typeId, target,
+    speed: def.behavior === "single" && t.typeId === "sniper" ? 520 : 360,
+    damage: t.damage, radius: t.typeId === "cannon" ? 6 : 4, behavior: def.behavior, color: def.color,
+    splash: t.splash, slowDur: t.slowDur, slowFactor: t.slowFactor, freezeDur: t.freezeDur,
+  });
+  FX.shoot(t.typeId);
+}
+
+function moveProjectiles(step) {
+  for (const p of game.projectiles) {
+    if (!p.target || !game.enemies.includes(p.target)) { p.dead = true; continue; }
+    const dx = p.target.x - p.x, dy = p.target.y - p.y, d = Math.hypot(dx, dy), stepDist = p.speed * step;
+    if (d <= stepDist + p.target.radius) { resolveHit(p); p.dead = true; }
+    else { p.x += (dx / d) * stepDist; p.y += (dy / d) * stepDist; }
+  }
+  game.projectiles = game.projectiles.filter((p) => !p.dead);
+}
+
+function resolveHit(p) {
+  const hx = p.target.x, hy = p.target.y;
+  if (p.behavior === "splash") {
+    spawnRing(hx, hy, p.color, p.splash, 0.28);
+    for (const e of [...game.enemies]) if (distance({ x: hx, y: hy }, e) <= p.splash) applyDamage(e, p.damage);
+  } else if (p.behavior === "freeze") {
+    // The Photographer's flash freezes the dish solid, then it thaws into a slow.
+    applyDamage(p.target, p.damage);
+    if (game.enemies.includes(p.target)) {
+      p.target.freezeTimer = Math.max(p.target.freezeTimer, p.freezeDur);
+      p.target.slowTimer = Math.max(p.target.slowTimer, p.freezeDur + p.slowDur);
+      p.target.slowFactor = Math.min(p.target.slowFactor, p.slowFactor);
+      spawnFreeze(hx, hy, p.target.radius);
+    }
+  } else if (p.behavior === "slow") {
+    applyDamage(p.target, p.damage);
+    if (game.enemies.includes(p.target)) { p.target.slowTimer = p.slowDur; p.target.slowFactor = Math.min(p.target.slowFactor, p.slowFactor); }
+  } else {
+    applyDamage(p.target, p.damage);
+    if (p.typeId === "cannon") spawnBite(hx, hy, p.color);   // Big Appetite's heavy single bite
+  }
+}
+
+function applyDamage(enemy, dmg) {
+  enemy.hp -= dmg;
+  enemy.hurtFlash = 0.08;
+  if (enemy.hp <= 0 && !enemy.reachedCore) {
+    game.enemies = game.enemies.filter((e) => e !== enemy);
+    game.killed++;
+    game.currency += enemy.reward;
+    game.score += enemy.reward;
+    spawnKillBurst(enemy.x, enemy.y, ENEMY_TYPES[enemy.typeId].color);
+    spawnFloatText(enemy.x, enemy.y - 14, "+$" + enemy.reward + " tip", COLOR.gold);
+    FX.kill();
+  } else {
+    spawnHitSpark(enemy.x, enemy.y);
+    FX.hit();
+  }
+}
+
+function checkWaveEnd() {
+  if (game.phase !== "wave") return;
+  if (game.spawnQueue.length === 0 && game.enemies.length === 0) {
+    game.currency += RULES.earnPerWave;
+    // Finite mode wins after the last authored wave; endless never wins — it
+    // keeps generating waves (getWave past WAVES.length) until you lose.
+    if (!game.endless && game.waveIndex + 1 >= WAVES.length) { endRun(true); }
+    else { game.waveIndex++; game.phase = "prep"; game.prepElapsed = 0; setMessage("Wave cleared!  +" + RULES.earnPerWave + " Tips — seat more customers, then Send Out the food", 4); }
+  }
+}
+
+function checkLoss() {
+  if (game.lives <= 0 && game.phase === "wave") endRun(false);
+}
+
+// Finish a run: award Essence (persisted) and show the summary.
+function endRun(won) {
+  // Endless runs end only by losing; wavesCleared is however many you finished.
+  const wavesCleared = won ? WAVES.length : game.waveIndex;
+  const essence = Math.max(1, Math.floor(wavesCleared / 2) + (won ? 3 : 0));
+  META.essence += essence;
+  saveMeta();
+  game.lastRun = {
+    won, endless: game.endless, killed: game.killed, essence, score: game.score,
+    wave: won ? WAVES.length : game.waveIndex + 1,
+  };
+  game.phase = won ? "won" : "lost";
+  won ? FX.win() : FX.lose();
+}
+
+/* -------------------------------------------------------------------------
+   Particles
+   ------------------------------------------------------------------------- */
+
+function spawnRing(x, y, color, maxR, life) { game.particles.push({ type: "ring", x, y, r: 4, maxR, life, maxLife: life, color }); }
+// CHOMP! A dish gets eaten: a quick bite-flash pop + scattering crumbs (in the
+// dish's own color plus warm crumb tones).
+function spawnKillBurst(x, y, color) {
+  spawnRing(x, y, "#fff2c8", 26, 0.22);
+  const crumbs = ["#e8c58a", "#c98a45", color];
+  for (let i = 0; i < 10; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 130;
+    game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.6 + Math.random() * 2, life: 0.35 + Math.random() * 0.3, maxLife: 0.65, color: crumbs[i % crumbs.length] });
+  }
+}
+// A big single CHOMP for Big Appetite — a bright bite flash + heavy ring + a
+// chunky crumb spray, so the bite really reads.
+function spawnBite(x, y, color) {
+  spawnRing(x, y, "#fff2d0", 22, 0.16);   // quick bright flash
+  spawnRing(x, y, "#ffe1b0", 40, 0.3);    // wider bite ring
+  const crumbs = ["#e8c58a", "#c98a45", color];
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 90 + Math.random() * 150;
+    game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2.4 + Math.random() * 2.6, life: 0.34 + Math.random() * 0.3, maxLife: 0.64, color: crumbs[i % crumbs.length] });
+  }
+}
+// A little kid hand that reaches in from a random side and clenches on a dish
+// (small grab-bite). Several can pile onto one dish when it's the only one in range.
+function spawnGrabHand(x, y, r) {
+  game.particles.push({ type: "grab", x, y, r, angle: Math.random() * Math.PI * 2, life: 0.22, maxLife: 0.22 });
+  game.particles.push({ type: "spark", x, y, vx: (Math.random() - 0.5) * 70, vy: (Math.random() - 0.5) * 70, r: 1.4, life: 0.2, maxLife: 0.2, color: "#e8c58a" });
+}
+// The camera flash snap that freezes a dish into a pose: a bright white pop + a
+// quick expanding "photo" ring + a few white sparkles (no ice).
+function spawnFreeze(x, y, r) {
+  spawnRing(x, y, "#ffffff", r + 18, 0.14);
+  spawnRing(x, y, "#eaf6ff", r + 9, 0.3);
+  for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 60; game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.4 + Math.random() * 1.6, life: 0.22 + Math.random() * 0.18, maxLife: 0.4, color: "#ffffff" }); }
+}
+function spawnUpgradeSparkles(t) {
+  spawnRing(t.x, t.y, COLOR.upgradeSpark, 42, 0.5);
+  for (let i = 0; i < 16; i++) { const a = (Math.PI * 2 * i) / 16, sp = 70 + Math.random() * 60; game.particles.push({ type: "spark", x: t.x, y: t.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2 + Math.random() * 2, life: 0.5 + Math.random() * 0.3, maxLife: 0.8, color: COLOR.upgradeSpark }); }
+}
+// A tiny, cheap spark on a non-lethal hit — quick readable feedback without the weight of a kill burst.
+function spawnHitSpark(x, y) {
+  for (let i = 0; i < 3; i++) { const a = Math.random() * Math.PI * 2, sp = 30 + Math.random() * 40; game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.5, life: 0.15, maxLife: 0.15, color: "#ffffff" }); }
+}
+function spawnFloatText(x, y, text, color) {
+  game.particles.push({ type: "text", x, y, vy: -34, text, color, life: 0.7, maxLife: 0.7 });
+}
+function updateParticles(step) {
+  for (const p of game.particles) {
+    p.life -= step;
+    if (p.type === "spark") { p.x += p.vx * step; p.y += p.vy * step; p.vx *= 0.92; p.vy *= 0.92; }
+    else if (p.type === "ring") { const k = 1 - p.life / p.maxLife; p.r = 4 + (p.maxR - 4) * k; }
+    else if (p.type === "text") { p.y += p.vy * step; p.vy *= 0.9; }
+  }
+  game.particles = game.particles.filter((p) => p.life > 0);
+}
+
