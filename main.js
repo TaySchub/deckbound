@@ -543,6 +543,7 @@ function tryBuild(slotIndex) {
     slotIndex, x: s.x, y: s.y, typeId: def.id, level: 1, maxLevel: 3,
     range: def.range, damage: def.damage, cooldown: def.cooldown,
     splash: def.splash || 0, slowFactor: def.slowFactor || 1, slowDur: def.slowDur || 0,
+    freezeDur: def.freezeDur || 0,
     cdTimer: 0, upgradeFlash: 0, targeting: "first",
     lungeTimer: 0, lungeAngle: 0,   // brief lunge-toward-target on attack (drawTowers)
   });
@@ -562,6 +563,7 @@ function tryUpgrade(t) {
   if (up.cooldownMul) t.cooldown *= up.cooldownMul;
   if (up.splash) t.splash += up.splash;
   if (up.slowFactorAdd) t.slowFactor = Math.max(0.2, t.slowFactor + up.slowFactorAdd);
+  if (up.freezeDurAdd) t.freezeDur += up.freezeDurAdd;
   t.upgradeFlash = 0.6;
   spawnUpgradeSparkles(t);
   audio.upgrade();
@@ -645,14 +647,17 @@ function spawnWaveEnemies(step) {
     const typeId = game.spawnQueue.shift();
     const et = ENEMY_TYPES[typeId];
     const hp = Math.round(game.waveHp * et.hpMul);
-    game.enemies.push({ typeId, dist: 0, speed: game.waveSpeed * et.speedMul, hp, maxHp: hp, radius: et.radius, reward: et.reward, hurtFlash: 0, slowTimer: 0, slowFactor: 1 });
+    game.enemies.push({ typeId, dist: 0, speed: game.waveSpeed * et.speedMul, hp, maxHp: hp, radius: et.radius, reward: et.reward, hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0 });
   }
 }
 
 function moveEnemies(step) {
   for (const e of game.enemies) {
     let speed = e.speed;
-    if (e.slowTimer > 0) { speed *= e.slowFactor; e.slowTimer -= step; if (e.slowTimer <= 0) e.slowFactor = 1; }
+    // Frozen dishes are stopped dead; once thawed the slow lingers for the rest of slowTimer.
+    if (e.freezeTimer > 0) { e.freezeTimer -= step; speed = 0; }
+    else if (e.slowTimer > 0) { speed *= e.slowFactor; }
+    if (e.slowTimer > 0) { e.slowTimer -= step; if (e.slowTimer <= 0) e.slowFactor = 1; }
     e.dist += speed * step;
     const p = pointAtDistance(e.dist);
     e.x = p.x; e.y = p.y;
@@ -713,7 +718,7 @@ function fireProjectile(t, target) {
     x: t.x, y: t.y, x0: t.x, y0: t.y, typeId: t.typeId, target,
     speed: def.behavior === "single" && t.typeId === "sniper" ? 520 : 360,
     damage: t.damage, radius: t.typeId === "cannon" ? 6 : 4, behavior: def.behavior, color: def.color,
-    splash: t.splash, slowDur: t.slowDur, slowFactor: t.slowFactor,
+    splash: t.splash, slowDur: t.slowDur, slowFactor: t.slowFactor, freezeDur: t.freezeDur,
   });
   audio.shoot(t.typeId);
 }
@@ -733,6 +738,15 @@ function resolveHit(p) {
   if (p.behavior === "splash") {
     spawnRing(hx, hy, p.color, p.splash, 0.28);
     for (const e of [...game.enemies]) if (distance({ x: hx, y: hy }, e) <= p.splash) applyDamage(e, p.damage);
+  } else if (p.behavior === "freeze") {
+    // The Photographer's flash freezes the dish solid, then it thaws into a slow.
+    applyDamage(p.target, p.damage);
+    if (game.enemies.includes(p.target)) {
+      p.target.freezeTimer = Math.max(p.target.freezeTimer, p.freezeDur);
+      p.target.slowTimer = Math.max(p.target.slowTimer, p.freezeDur + p.slowDur);
+      p.target.slowFactor = Math.min(p.target.slowFactor, p.slowFactor);
+      spawnFreeze(hx, hy, p.target.radius);
+    }
   } else if (p.behavior === "slow") {
     applyDamage(p.target, p.damage);
     if (game.enemies.includes(p.target)) { p.target.slowTimer = p.slowDur; p.target.slowFactor = Math.min(p.target.slowFactor, p.slowFactor); }
@@ -812,6 +826,13 @@ function spawnBite(x, y, color) {
     const a = Math.random() * Math.PI * 2, sp = 70 + Math.random() * 130;
     game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2 + Math.random() * 2.4, life: 0.32 + Math.random() * 0.28, maxLife: 0.6, color: crumbs[i % crumbs.length] });
   }
+}
+// The camera flash snap that freezes a dish into a pose: a bright white pop + a
+// quick expanding "photo" ring + a few white sparkles (no ice).
+function spawnFreeze(x, y, r) {
+  spawnRing(x, y, "#ffffff", r + 18, 0.14);
+  spawnRing(x, y, "#eaf6ff", r + 9, 0.3);
+  for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 60; game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.4 + Math.random() * 1.6, life: 0.22 + Math.random() * 0.18, maxLife: 0.4, color: "#ffffff" }); }
 }
 function spawnUpgradeSparkles(t) {
   spawnRing(t.x, t.y, COLOR.upgradeSpark, 42, 0.5);
@@ -1240,8 +1261,22 @@ function drawFood(ctx, typeId, x, y, r, color, edge, hurt) {
 function drawEnemies(ctx) {
   for (const e of game.enemies) {
     const et = ENEMY_TYPES[e.typeId];
-    if (e.slowTimer > 0) { ctx.strokeStyle = COLOR.frostAura; ctx.globalAlpha = 0.6; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y, e.radius + 5, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+    if (e.slowTimer > 0 && e.freezeTimer <= 0) { ctx.strokeStyle = COLOR.frostAura; ctx.globalAlpha = 0.6; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y, e.radius + 5, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
     drawFood(ctx, e.typeId, e.x, e.y, e.radius, et.color, et.edge, e.hurtFlash > 0);
+    // Posing for the photo: a slight overexposed tint + camera-viewfinder corner
+    // brackets framing the held-still dish (no ice — it's a snapshot, not a freeze).
+    if (e.freezeTimer > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.22; ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.radius + 2, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.95; ctx.strokeStyle = "#eaf6ff"; ctx.lineWidth = 1.6; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      const b = e.radius + 5, L = Math.max(3, e.radius * 0.55);
+      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        const bx = e.x + sx * b, by = e.y + sy * b;
+        ctx.beginPath(); ctx.moveTo(bx, by - sy * L); ctx.lineTo(bx, by); ctx.lineTo(bx - sx * L, by); ctx.stroke();
+      }
+      ctx.restore();
+    }
     if (e.hp < e.maxHp) {
       const w = Math.max(18, e.radius * 2), frac = Math.max(0, e.hp / e.maxHp);
       ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(e.x - w / 2, e.y - e.radius - 11, w, 4);

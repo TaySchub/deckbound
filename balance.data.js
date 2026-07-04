@@ -174,17 +174,18 @@ window.BALANCE = {
     },
     "frost": {
       "name": "The Photographer",
-      "blurb": "Freezes food to pose (slow)",
+      "blurb": "Flash makes a dish pose (1s freeze), then it's slowed ~3s (very low dmg)",
       "cost": 70,
       "range": 120,
-      "damage": 10,
-      "cooldown": 0.8,
-      "behavior": "slow",
+      "damage": 6,
+      "cooldown": 1.1,
+      "behavior": "freeze",
+      "freezeDur": 1.0,
       "slowFactor": 0.5,
-      "slowDur": 1.2,
+      "slowDur": 3.0,
       "up": {
-        "damage": 6,
-        "slowFactorAdd": -0.08,
+        "damage": 3,
+        "freezeDurAdd": 0.2,
         "range": 12
       }
     },
