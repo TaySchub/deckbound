@@ -17,6 +17,18 @@ Format is deliberately simple and plain-language.
   No gameplay/balance change. File: `style.css`.
 
 ### Changed
+- **Backbone aligned to faceless foods + dead googly-eyes code removed**
+  (Developer hat; developer-confirmed 2026-07-04). `docs/FRANCHISE_BACKBONE.md`'s
+  tone rules still described food with "googly eyes" — superseded by the art
+  deep-dive (PR #43), which made every dish **faceless and food-forward**, with
+  panic read through tiny legs, speed lines, and scattering. The tone rule now
+  states the faceless-by-design decision (customers keep their faces) and
+  points to `docs/ART_STYLE.md`. Also removed `drawGooglyEyes()` from
+  `main.js` — unused since the deep-dive (zero call sites), kept only by
+  accident; deleted so it can't drift back in. Ran `gen_balance.py`
+  (`index.html` cache-bust re-stamped). **No gameplay, balance, or visual
+  change** — verified: game loads with zero console errors.
+  Files: `docs/FRANCHISE_BACKBONE.md`, `main.js` (+ `index.html` stamp).
 - **Docs/comment alignment + a balance ease** (Developer hat). Post-rework cleanup
   so nothing reads as outdated: `docs/FRANCHISE_BACKBONE.md` cast roles +
   personalities rewritten to the new combat identities (Big Appetite = heavy

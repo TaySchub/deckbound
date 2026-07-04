@@ -64,8 +64,11 @@ armored lobster. **One restaurant per map; don't mix cuisines on a single map.**
 
 ## Tone rules
 
-- **General-audience, Saturday-morning-cartoon.** Food is cute and panicky
-  (googly eyes, little legs); customers are charming gluttons.
+- **General-audience, Saturday-morning-cartoon.** Food is cute and panicky —
+  and **faceless by design**: the silhouette carries the character, with panic
+  read through tiny legs, speed lines, and scattering (art deep-dive decision,
+  2026-07-03; details in `docs/ART_STYLE.md`). Customers are charming gluttons,
+  and they DO have faces.
 - **The "violence" is dining** — keep it comedic, never gross.
 - **Original content only** — no real brands, chains, mascots, or trademarked food
   characters.
