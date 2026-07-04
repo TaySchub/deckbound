@@ -39,6 +39,18 @@ Format is deliberately simple and plain-language.
   historical `deckbound-retheme-prompt.md` naming map. Balance ease: Big Appetite
   cooldown **3.0 → 2.8s** — reference build **53.0% (BALANCED)**. (Flagged for the
   audio branch: some attack *sounds* no longer match the reworked attacks.)
+- **Target win-rate band tightened: 45–60% → 50–60%** (developer decision,
+  2026-07-04). Balance changes now aim for a coin-flip-or-better reference
+  game: `data/balance.json` `target_win_rate` is `[0.50, 0.60]`. The band
+  lives in the JSON, so the sim, the CI gate, and the printed verdicts all
+  pick it up automatically; the sim's code fallback and the SETUP-AND-LAUNCH
+  doc were updated to match. Current reference build reads **53.0% —
+  BALANCED inside the new band** (`--check --sims 200`, exit 0), so nothing
+  needs retuning today; the floor just rose from 45% to 50% for all future
+  tuning. Historical 45–60% mentions in CHANGELOG entries and archived design
+  docs are left as history. Files: `data/balance.json`, `balance.data.js`
+  (generated), `index.html` (stamp), `tools/balance_sim.py`,
+  `SETUP-AND-LAUNCH.md`.
 - **Combat feel tweaks** (Developer hat, follow-up to the rework):
   - **Milkshake Slurper** — the straw now **stays attached** to one dish and sips
     fast until it dies or leaves range (was rapid-firing separate straws); sip

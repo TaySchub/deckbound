@@ -156,6 +156,6 @@ python3 tools/balance_sim.py
 ```
 
 It plays the game headlessly and reports a win-rate — aim for the
-`target_win_rate` band (45–60%) set in the same file. Colors, shapes, and art
+`target_win_rate` band (50–60%) set in the same file. Colors, shapes, and art
 aren't in `balance.json`; those live in `main.js` (and `style.css` for the page
 around the game).
