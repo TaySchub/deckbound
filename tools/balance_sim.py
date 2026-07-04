@@ -175,6 +175,12 @@ def simulate_wave(towers: list[dict], wave: dict, cfg: dict, rng: random.Random,
                 for e in enemies:
                     if math.hypot(e["x"] - target["x"], e["y"] - target["y"]) <= t.get("splash", 0):
                         e["hp"] -= t["damage"]
+            elif t["behavior"] == "multi":
+                # maxTargets hands spread across the frontmost dishes; spare hands pile
+                # onto the same dish when fewer are in range (mirrors updateTowers).
+                front = sorted(in_range, key=lambda e: -e["dist"])
+                for i in range(t.get("maxTargets", 1)):
+                    front[i % len(front)]["hp"] -= t["damage"]
             else:
                 target["hp"] -= t["damage"]
                 if t["behavior"] == "slow":
@@ -229,7 +235,7 @@ def make_tower(kind: str, x: float, y: float, cfg: dict) -> dict:
             "cooldown": spec["cooldown"], "behavior": spec["behavior"],
             "splash": spec.get("splash", 0), "slowDur": spec.get("slowDur", 0.0),
             "slowFactor": spec.get("slowFactor", 1.0), "freezeDur": spec.get("freezeDur", 0.0),
-            "up": spec.get("up", {})}
+            "maxTargets": spec.get("maxTargets", 1), "up": spec.get("up", {})}
 
 
 def apply_upgrade(t: dict) -> None:

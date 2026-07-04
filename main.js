@@ -543,7 +543,7 @@ function tryBuild(slotIndex) {
     slotIndex, x: s.x, y: s.y, typeId: def.id, level: 1, maxLevel: 3,
     range: def.range, damage: def.damage, cooldown: def.cooldown,
     splash: def.splash || 0, slowFactor: def.slowFactor || 1, slowDur: def.slowDur || 0,
-    freezeDur: def.freezeDur || 0,
+    freezeDur: def.freezeDur || 0, maxTargets: def.maxTargets || 1,
     cdTimer: 0, upgradeFlash: 0, targeting: "first",
     lungeTimer: 0, lungeAngle: 0,   // brief lunge-toward-target on attack (drawTowers)
   });
@@ -695,8 +695,19 @@ function updateTowers(step) {
     if (t.lungeTimer > 0) t.lungeTimer -= step;
     t.cdTimer -= step;
     if (t.cdTimer > 0) continue;
-    const target = pickTarget(t);
-    if (target) { fireProjectile(t, target); t.cdTimer = t.cooldown; }
+    if (TOWER_BY_ID[t.typeId].behavior === "multi") {
+      // The Kids' Table sends `maxTargets` hands. They spread across the frontmost
+      // dishes; if fewer dishes than hands are in range, the spare hands pile onto
+      // the same dish (so one dish alone gets grabbed by all three kids).
+      const inRange = game.enemies.filter((e) => distance(t, e) <= t.range).sort((a, b) => b.dist - a.dist);
+      if (inRange.length) {
+        for (let i = 0; i < t.maxTargets; i++) fireProjectile(t, inRange[i % inRange.length]);
+        t.cdTimer = t.cooldown;
+      }
+    } else {
+      const target = pickTarget(t);
+      if (target) { fireProjectile(t, target); t.cdTimer = t.cooldown; }
+    }
   }
 }
 
@@ -711,6 +722,13 @@ function fireProjectile(t, target) {
     t.lungeTimer = LUNGE_DUR; t.lungeAngle = Math.atan2(ty - t.y, tx - t.x);   // lunge in; his mouth does the chomp
     applyDamage(target, t.damage);
     spawnBite(tx, ty, "#c98a45");   // crumb spray at the dish
+    audio.shoot(t.typeId);
+    return;
+  }
+  // The Kids' Table grabs the dish right on the belt — a hand clenches on it.
+  if (t.typeId === "zap") {
+    applyDamage(target, t.damage);
+    spawnGrabHand(target.x, target.y, target.radius);
     audio.shoot(t.typeId);
     return;
   }
@@ -826,6 +844,12 @@ function spawnBite(x, y, color) {
     const a = Math.random() * Math.PI * 2, sp = 70 + Math.random() * 130;
     game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 2 + Math.random() * 2.4, life: 0.32 + Math.random() * 0.28, maxLife: 0.6, color: crumbs[i % crumbs.length] });
   }
+}
+// A little kid hand that reaches in from a random side and clenches on a dish
+// (small grab-bite). Several can pile onto one dish when it's the only one in range.
+function spawnGrabHand(x, y, r) {
+  game.particles.push({ type: "grab", x, y, r, angle: Math.random() * Math.PI * 2, life: 0.22, maxLife: 0.22 });
+  game.particles.push({ type: "spark", x, y, vx: (Math.random() - 0.5) * 70, vy: (Math.random() - 0.5) * 70, r: 1.4, life: 0.2, maxLife: 0.2, color: "#e8c58a" });
 }
 // The camera flash snap that freezes a dish into a pose: a bright white pop + a
 // quick expanding "photo" ring + a few white sparkles (no ice).
@@ -1117,7 +1141,32 @@ function drawGooglyEyes(ctx, x, y, er) {
 
 // Each enemy is a runaway dish — cheap shapes + one identity feature, distinct in
 // silhouette and color. `hurt` flashes the fill white on a non-lethal hit.
-function drawFood(ctx, typeId, x, y, r, color, edge, hurt) {
+// Where the (single) bite lands on each food, in units of r — chosen to sit on the
+// actual body (not the legs/edges). The Fry Swarm eats its fries instead, so it's absent.
+const BITE_SPOTS = {
+  mote:   [0.74, -0.36],   // top of the bun
+  runner: [0.5, -0.4],     // top-right bun
+  brute:  [0.6, -0.44],    // upper corner of the slab
+};
+// One bite eaten out of a dish, at a fixed per-food spot; it grows into a bigger
+// chunk as HP drops (same corner, larger portion) rather than adding new bites.
+// A bright cut-edge highlight keeps it readable even on dark foods.
+function drawFoodBites(ctx, typeId, x, y, r, n, edge) {
+  const [ux, uy] = BITE_SPOTS[typeId] || [0.66, -0.42];
+  const bx = x + ux * r, by = y + uy * r, br = r * (0.3 + 0.2 * (n - 1));   // grows with n
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-out"; ctx.fillStyle = "#000";   // punch a clean round bite
+  ctx.beginPath(); ctx.arc(bx, by, br, 0, 7); ctx.fill();
+  ctx.restore();
+  const ca = Math.atan2(y - by, x - bx);   // arc facing the food's centre = the exposed cut edge
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = Math.max(1, r * 0.08);
+  ctx.beginPath(); ctx.arc(bx, by, br + 0.4, ca - 1.15, ca + 1.15); ctx.stroke();
+  ctx.strokeStyle = edge; ctx.lineWidth = Math.max(0.8, r * 0.06);
+  ctx.beginPath(); ctx.arc(bx, by, br, ca - 1.3, ca + 1.3); ctx.stroke();
+}
+
+function drawFood(ctx, typeId, x, y, r, color, edge, hurt, bites = 0) {
   ctx.save();
   ctx.lineJoin = "round";
   const fill = hurt ? "#ffffff" : color;
@@ -1241,7 +1290,10 @@ function drawFood(ctx, typeId, x, y, r, color, edge, hurt) {
       if (!hurt) { ctx.fillStyle = "#fbe38a"; roundRect(ctx, -r * 0.14, -len, r * 0.28, len * 0.42, r * 0.11); ctx.fill(); }   // lighter tip
       ctx.restore();
     };
-    fry(-0.55, -1.05, -0.22); fry(-0.18, -1.22, 0.04); fry(0.18, -1.14, -0.05); fry(0.52, -1.0, 0.2); fry(0.0, -0.95, 0.0);
+    // Fries get eaten away as HP drops (kept centre-out), instead of a bite-hole.
+    const fryList = [[0.0, -0.95, 0.0], [0.18, -1.14, -0.05], [-0.18, -1.22, 0.04], [0.52, -1.0, 0.2], [-0.55, -1.05, -0.22]];
+    const fryCount = Math.max(1, 5 - bites * 2);
+    for (let i = 0; i < fryCount; i++) fry(fryList[i][0], fryList[i][1], fryList[i][2]);
     // Red carton (trapezoid) with a cream band.
     const topW = r * 2.3, botW = r * 1.5, topY = y - r * 0.12, botY = y + r * 1.02;
     ctx.fillStyle = hurt ? "#fff" : "#d6473a"; ctx.strokeStyle = hurt ? "#fff" : "#8f2a1f"; ctx.lineWidth = Math.max(1.2, r * 0.18); ctx.lineJoin = "round";
@@ -1255,6 +1307,7 @@ function drawFood(ctx, typeId, x, y, r, color, edge, hurt) {
     ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = edge; ctx.lineWidth = 2; ctx.stroke();
   }
+  if (bites > 0 && typeId !== "swarm") drawFoodBites(ctx, typeId, x, y, r, bites, edge);   // swarm eats its fries instead
   ctx.restore();
 }
 
@@ -1262,7 +1315,9 @@ function drawEnemies(ctx) {
   for (const e of game.enemies) {
     const et = ENEMY_TYPES[e.typeId];
     if (e.slowTimer > 0 && e.freezeTimer <= 0) { ctx.strokeStyle = COLOR.frostAura; ctx.globalAlpha = 0.6; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y, e.radius + 5, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
-    drawFood(ctx, e.typeId, e.x, e.y, e.radius, et.color, et.edge, e.hurtFlash > 0);
+    // Eaten-down bites: one past 3/4 HP, two past 1/2 HP.
+    const frac = e.hp / e.maxHp, bites = frac <= 0.5 ? 2 : frac <= 0.75 ? 1 : 0;
+    drawFood(ctx, e.typeId, e.x, e.y, e.radius, et.color, et.edge, e.hurtFlash > 0, bites);
     // Posing for the photo: a slight overexposed tint + camera-viewfinder corner
     // brackets framing the held-still dish (no ice — it's a snapshot, not a freeze).
     if (e.freezeTimer > 0) {
@@ -1730,8 +1785,32 @@ function drawParticles(ctx) {
     ctx.globalAlpha = Math.max(0, p.life / p.maxLife); ctx.fillStyle = p.color;
     if (p.type === "ring") { ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.stroke(); }
     else if (p.type === "text") { ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText(p.text, p.x, p.y); ctx.textAlign = "left"; }
+    else if (p.type === "grab") { drawGrabHand(ctx, p); }
     else { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); }
   }
+  ctx.globalAlpha = 1;
+}
+
+// A cartoon kid hand reaching in toward (p.x,p.y) from p.angle and clenching:
+// fingers start splayed and long, then curl short as it grabs.
+function drawGrabHand(ctx, p) {
+  const prog = 1 - p.life / p.maxLife;                 // 0 approach -> 1 clenched
+  const reach = (1 - prog) * p.r * 1.3 + p.r * 0.3;    // hand moves in as it grabs
+  const hx = p.x + Math.cos(p.angle) * reach, hy = p.y + Math.sin(p.angle) * reach;
+  const toward = Math.atan2(p.y - hy, p.x - hx);
+  const palmR = Math.max(2.4, p.r * 0.42);
+  const spread = 0.6 - prog * 0.42, fLen = palmR * (1.6 - prog * 0.8);
+  ctx.globalAlpha = p.life < p.maxLife * 0.35 ? p.life / (p.maxLife * 0.35) : 1;
+  ctx.lineCap = "round";
+  for (const off of [-1.5, -0.5, 0.5, 1.5]) {          // four fingers curling toward the dish
+    const fa = toward + off * spread, fx = hx + Math.cos(fa) * fLen, fy = hy + Math.sin(fa) * fLen;
+    ctx.strokeStyle = MDARK; ctx.lineWidth = palmR * 0.66; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(fx, fy); ctx.stroke();
+    ctx.strokeStyle = SKIN; ctx.lineWidth = palmR * 0.44; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(fx, fy); ctx.stroke();
+  }
+  ctx.fillStyle = SKIN; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(hx, hy, palmR, 0, 7); ctx.fill(); ctx.stroke();   // palm
+  ctx.fillStyle = "#ffe08a";                                                 // little kid sleeve cuff
+  ctx.beginPath(); ctx.arc(hx - Math.cos(toward) * palmR * 0.95, hy - Math.sin(toward) * palmR * 0.95, palmR * 0.55, 0, 7); ctx.fill();
   ctx.globalAlpha = 1;
 }
 

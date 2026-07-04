@@ -205,16 +205,17 @@ window.BALANCE = {
     },
     "zap": {
       "name": "The Kids' Table",
-      "blurb": "Cheap, fast, tiny bites",
+      "blurb": "Three kids grab up to 3 dishes at once \u2014 small fast bites",
       "cost": 35,
       "range": 96,
-      "damage": 12,
-      "cooldown": 0.32,
-      "behavior": "single",
+      "damage": 9,
+      "cooldown": 0.5,
+      "behavior": "multi",
+      "maxTargets": 3,
       "up": {
-        "damage": 7,
+        "damage": 5,
         "range": 8,
-        "cooldownMul": 0.85
+        "cooldownMul": 0.88
       }
     }
   },
