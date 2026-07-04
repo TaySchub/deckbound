@@ -1154,16 +1154,6 @@ function drawCore(ctx) {
   ctx.fillText("TRASH", x, botY + 15);
 }
 
-// Two googly eyes — the panicky-food identity feature.
-function drawGooglyEyes(ctx, x, y, er) {
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath(); ctx.arc(x - er, y, er, 0, Math.PI * 2); ctx.arc(x + er, y, er, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "#0b0e14"; ctx.lineWidth = 0.8;
-  ctx.beginPath(); ctx.arc(x - er, y, er, 0, Math.PI * 2); ctx.arc(x + er, y, er, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = "#0b0e14";
-  ctx.beginPath(); ctx.arc(x - er, y + er * 0.3, er * 0.5, 0, Math.PI * 2); ctx.arc(x + er, y + er * 0.3, er * 0.5, 0, Math.PI * 2); ctx.fill();
-}
-
 // Each enemy is a runaway dish — cheap shapes + one identity feature, distinct in
 // silhouette and color. `hurt` flashes the fill white on a non-lethal hit.
 // Where the (single) bite lands on each food, in units of r — chosen to sit on the
