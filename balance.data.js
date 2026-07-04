@@ -191,16 +191,16 @@ window.BALANCE = {
     },
     "sniper": {
       "name": "The Milkshake Slurper",
-      "blurb": "Slurps one far dish clean up the straw (long range)",
+      "blurb": "Slurps a dish super-fast for tiny bites \u2014 watch its HP drain (small-med range)",
       "cost": 95,
-      "range": 235,
-      "damage": 70,
-      "cooldown": 1.85,
+      "range": 150,
+      "damage": 7,
+      "cooldown": 0.14,
       "behavior": "single",
       "up": {
-        "damage": 45,
-        "range": 26,
-        "cooldownMul": 0.88
+        "damage": 3,
+        "range": 15,
+        "cooldownMul": 0.9
       }
     },
     "zap": {
