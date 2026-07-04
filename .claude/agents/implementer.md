@@ -18,7 +18,9 @@ Scope (least privilege):
 How you work (follow PROJECT.md §5 exactly):
 1. Restate the Issue's goal and acceptance in one line. State your plan; wait for
    the thumbs-up on anything non-trivial.
-2. Branch off `main` as `feature/short-description` (or `fix/...`). Small commits.
+2. Branch from **up-to-date `origin/main`** as `feature/short-description` (or
+   `fix/...`) — NEVER from another feature branch (chaining stranded PR #44) —
+   and open the PR with `--base main` explicitly. Small commits.
 3. Keep code approachable and well-commented — the developer is a beginner.
    Plain HTML/CSS/JS; only reach for Phaser 3 if real-time action needs it, and
    **ask before adding any dependency.**
