@@ -90,23 +90,26 @@ a monthly dollar cap you control, or (b) run the unattended loop via the **Agent
 SDK** and wrap it to sum tokens from each response and abort at 500K. Keep the run
 on **subagents, not Agent Teams** — Agent Teams use ~7x the tokens.
 
-## Don't let the merge gate stall the night: chain branches
+## Branching: always from `main`, never chained (changed 2026-07-04)
 
-Because `main` is gated, the worker branches the *next* issue off the *previous
-issue's branch*, not off `main`. That way sequential Core work (#4→#5→#6→#7) keeps
-flowing overnight as a stack of PRs, and you merge the stack in order in the
-morning. Tradeoff: if you reject an early PR on review, the stack above it
-rebases — acceptable and reversible for a solo project.
+**Every branch cuts from up-to-date `origin/main`, and every PR targets
+`--base main` explicitly.** Branch-chaining (stacking the next issue's branch
+on the previous issue's branch) is banned: it's how PR #44 merged into its
+parent feature branch instead of `main` and stranded a night's work. Agents +
+GitHub's base-branch guessing make stacks a footgun with no payoff here.
 
-> If you'd rather wake up to nothing pending at all, you *can* allow auto-merge
-> when CI passes — but merging unreviewed agent code straight to `main` overnight
-> is the single riskiest relaxation here. If you do it, at minimum keep branch
-> protection + required CI checks on. My recommendation is to keep the merge gate
-> and use branch-chaining instead.
+**Cap an unattended run at 2 open PRs, then stop and report.** The solo
+reviewer is the bottleneck — a taller stack of unreviewed PRs queues risk
+faster than it queues progress. If a second feature truly depends on an
+unmerged first one, don't stack: park it as "blocked on PR #N" and pick an
+independent issue instead.
+
+(`main` now has branch protection requiring the CI `checks` job, and merged
+PR branches auto-delete — set 2026-07-04.)
 
 ## What you wake up to
 
-A stack of finished, CI-passed PRs to review and merge; a short list of anything
-parked (gated actions awaiting your yes, or issues blocked after Opus escalation
-with the blocker written out); and a spend log. Progress made all night; nothing
-irreversible done without you.
+Up to two finished, CI-passed PRs to review and merge; a short list of anything
+parked (gated actions awaiting your yes, issues blocked after Opus escalation
+with the blocker written out, or work blocked on an unmerged PR); and a spend
+log. Progress made overnight; nothing irreversible done without you.

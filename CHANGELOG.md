@@ -17,6 +17,19 @@ Format is deliberately simple and plain-language.
   No gameplay/balance change. File: `style.css`.
 
 ### Changed
+- **Branching flow simplified: no more chaining; repo hardened** (QA hat;
+  developer-approved 2026-07-04). The stacked-PR footgun that stranded PR #44
+  (it merged into its parent feature branch instead of `main`) came from
+  written policy — `AUTONOMY.md` told overnight workers to chain branches.
+  Changed: **every branch cuts from up-to-date `origin/main`; every PR targets
+  `--base main` explicitly; unattended runs cap at 2 open PRs then stop**
+  (`AUTONOMY.md` rewritten, `implementer.md` step 2 updated). Repo settings set
+  the same day (via `gh api`, developer-approved): **auto-delete merged PR
+  branches** and **branch protection on `main`** requiring the CI `checks` job
+  (no required reviews — solo repo; admin can bypass). Hygiene: 21 fully-merged
+  remote branches and 5 local ones deleted (every tip verified an ancestor of
+  `main` first — zero content loss). Files: `AUTONOMY.md`,
+  `.claude/agents/implementer.md`.
 - **Backbone aligned to faceless foods + dead googly-eyes code removed**
   (Developer hat; developer-confirmed 2026-07-04). `docs/FRANCHISE_BACKBONE.md`'s
   tone rules still described food with "googly eyes" — superseded by the art
