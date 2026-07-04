@@ -42,7 +42,7 @@ import math
 import random
 from statistics import median
 
-TARGET_WIN_RATE = (0.45, 0.60)
+TARGET_WIN_RATE = (0.50, 0.60)   # fallback only; data/balance.json's target_win_rate wins
 DT = 1.0 / 30.0             # simulation timestep in seconds
 
 # Reference build strategies (which tower goes in each slot, in build order).

@@ -3,7 +3,7 @@
 window.BALANCE = {
   "_note": "Single source of truth for DIFFICULTY, ECONOMY, and MAP GEOMETRY. tools/balance_sim.py reads this file directly; the game reads it via the generated balance.data.js (run tools/gen_balance.py after editing). Only pure art (colors/shapes) stays in main.js; tower/enemy display names + blurbs live here too, so a theme reskin is JSON-only. Rule: if the balance sim needs a number to compute win-rate, it belongs in this file \u2014 including per-tower upgrade deltas ('up'), the map (path + slots), and the wave generator (waveGen).",
   "target_win_rate": [
-    0.45,
+    0.5,
     0.6
   ],
   "economy": {
