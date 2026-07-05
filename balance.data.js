@@ -18,7 +18,7 @@ window.BALANCE = {
     {
       "id": "blueplate",
       "name": "Blue-Plate Special",
-      "tuned": false,
+      "tuned": true,
       "theme": {
         "floor": {
           "bg": "#F2E6C6",
@@ -240,7 +240,7 @@ window.BALANCE = {
     {
       "id": "diner",
       "name": "The American Diner",
-      "tuned": true,
+      "tuned": false,
       "theme": {
         "floor": {
           "bg": "#10131a",
@@ -465,11 +465,11 @@ window.BALANCE = {
           "name": "Fork Frenzy",
           "tiers": [
             {
-              "cost": 55,
+              "cost": 70,
               "cooldownMul": 0.6
             },
             {
-              "cost": 95,
+              "cost": 120,
               "pierce": true,
               "damage": 18,
               "range": 14
@@ -571,11 +571,11 @@ window.BALANCE = {
           "name": "Paparazzi",
           "tiers": [
             {
-              "cost": 60,
+              "cost": 70,
               "range": 20
             },
             {
-              "cost": 105,
+              "cost": 120,
               "range": 12,
               "freezeTargets": 2
             }
@@ -670,7 +670,7 @@ window.BALANCE = {
   "waveGen": {
     "waveCount": 20,
     "hpBase": 70,
-    "hpGrowth": 1.134,
+    "hpGrowth": 1.105,
     "speedBase": 50,
     "speedStep": 1.4,
     "speedMax": 82,

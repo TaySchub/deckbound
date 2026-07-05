@@ -8,8 +8,9 @@ Purpose in the agent system:
   data/balance.json; this script plays N games with a scripted reference and
   reports a survival number. Since Issue #75 the game is ENDLESS (no win at a
   fixed wave), so the gauge here mirrors sim.mjs: "win" := survive to wave 30
-  (SURVIVE_TO). This 1-D model reads high (HP jitter, no real mechanics), so
-  it's a cross-check, not the verdict — the wave-parity gate keeps it honest.
+  (SURVIVE_TO). This 1-D model DIVERGES from the engine (HP jitter + no real
+  mechanics like pierce/knockback/double-freeze/straw-lock), so its number is a
+  cross-check, not the verdict — the wave-parity gate keeps the wave formula honest.
 
 What it models (and what it doesn't):
   - It reads the SAME data/balance.json the game reads (via balance.data.js), so
@@ -49,7 +50,7 @@ TARGET_WIN_RATE = (0.50, 0.60)   # fallback only; data/balance.json's target_win
 DT = 1.0 / 30.0             # simulation timestep in seconds
 SURVIVE_TO = 30            # endless gauge (Issue #75): "win" := survive to wave 30. This is a
                           # REPORT-ONLY mirror of tools/sim.mjs (the real gate); the 1-D Python
-                          # model reads high (HP jitter + no real mechanics), so its number is a
+                          # model diverges (HP jitter + no real mechanics), so its number is a
                           # second opinion, not the verdict.
 
 # Reference build strategies (which tower goes in each slot, in build order).
@@ -421,7 +422,7 @@ def main():
         print(f"\nCHECK {'PASSED' if ok else 'FAILED'}: survival@{SURVIVE_TO} "
               f"{r['win_rate']:.1%} {'inside' if ok else 'OUTSIDE'} "
               f"{band[0]:.0%}-{band[1]:.0%}"
-              + "  (REPORT ONLY — tools/sim.mjs is the real gate; this 1-D model reads high)")
+              + "  (REPORT ONLY — tools/sim.mjs is the real gate; this 1-D model diverges, no real mechanics)")
         raise SystemExit(0 if ok else 1)
 
     for name, build in STRATEGIES.items():

@@ -13,7 +13,7 @@
     {
       "id": "blueplate",
       "name": "Blue-Plate Special",
-      "tuned": false,
+      "tuned": true,
       "theme": {
         "floor": { "bg": "#F2E6C6", "tile": "#3B4552", "tileSize": 45 },
         "wallFrame": { "color": "#2FB4A6", "thickness": 6 },
@@ -70,7 +70,7 @@
     {
       "id": "diner",
       "name": "The American Diner",
-      "tuned": true,
+      "tuned": false,
       "theme": {
         "floor": { "bg": "#10131a", "tile": "#141a24", "tileSize": 45 },
         "belt": {
@@ -124,7 +124,7 @@
       "name": "The Regular", "blurb": "Steady single-target fork-stabs",
       "cost": 50, "range": 130, "damage": 30, "cooldown": 0.75, "behavior": "single",
       "upgrades": {
-        "forkFrenzy":     { "name": "Fork Frenzy",     "tiers": [ { "cost": 55, "cooldownMul": 0.6 }, { "cost": 95, "pierce": true, "damage": 18, "range": 14 } ] },
+        "forkFrenzy":     { "name": "Fork Frenzy",     "tiers": [ { "cost": 70, "cooldownMul": 0.6 }, { "cost": 120, "pierce": true, "damage": 18, "range": 14 } ] },
         "carvingStation": { "name": "Carving Station", "tiers": [ { "cost": 55, "damage": 28, "range": 14 }, { "cost": 95, "damage": 28, "range": 14 } ] }
       }
     },
@@ -141,7 +141,7 @@
       "cost": 70, "range": 120, "damage": 6, "cooldown": 1.1, "behavior": "freeze", "freezeDur": 1.0, "slowFactor": 0.62, "slowDur": 3.0,
       "upgrades": {
         "longExposure": { "name": "Long Exposure", "tiers": [ { "cost": 60, "freezeDurAdd": 0.2, "damage": 3, "range": 12 }, { "cost": 105, "freezeDurAdd": 0.2, "damage": 3, "range": 12, "slowDurAdd": 1.0, "slowFactorAdd": -0.05 } ] },
-        "paparazzi":    { "name": "Paparazzi",     "tiers": [ { "cost": 60, "range": 20 }, { "cost": 105, "range": 12, "freezeTargets": 2 } ] }
+        "paparazzi":    { "name": "Paparazzi",     "tiers": [ { "cost": 70, "range": 20 }, { "cost": 120, "range": 12, "freezeTargets": 2 } ] }
       }
     },
     "sniper": {
@@ -164,7 +164,7 @@
   "waveGen": {
     "waveCount": 20,
     "hpBase": 70,
-    "hpGrowth": 1.134,
+    "hpGrowth": 1.105,
     "speedBase": 50,
     "speedStep": 1.4,
     "speedMax": 82,

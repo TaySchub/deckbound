@@ -127,7 +127,8 @@ The backlog is GitHub Issues — the single roadmap. Don't create a parallel one
   new maps don't disturb existing ones: `wallFrame` (margin trim), belt
   `chevrons`, `coreStyle` ("chute" | "dishReturn"), and `theme.props` (recolors
   shared obstacle drawers; absent → the drawers' hardcoded defaults). Two maps
-  ship: `blueplate` (default, tuned:false) + `diner` (tuned:true, the gate).
+  ship: `blueplate` (default + `tuned:true`, the gate — calibrated to the endless
+  survival gauge in Issue #75) + `diner` (`tuned:false`, report-only).
 - **`src/engine.js` — upgrades (paths):** two exclusive paths per tower
   (`towerPaths`/`pathAvailable`/`nextTier`); `tryUpgrade(t, pathId)` commits a
   path (locks the other) and applies a tier's deltas via `applyUpgradeDeltas`
