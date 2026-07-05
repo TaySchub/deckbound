@@ -249,7 +249,8 @@ window.BALANCE = {
               "freezeDurAdd": 0.2,
               "damage": 3,
               "range": 12,
-              "slowFactorAdd": -0.09
+              "slowDurAdd": 1.0,
+              "slowFactorAdd": -0.05
             }
           ]
         },
@@ -263,7 +264,7 @@ window.BALANCE = {
             {
               "cost": 100,
               "range": 12,
-              "damage": 4
+              "freezeTargets": 2
             }
           ]
         }
@@ -303,7 +304,7 @@ window.BALANCE = {
             {
               "cost": 100,
               "range": 10,
-              "damage": 3
+              "drainTargets": 2
             }
           ]
         }

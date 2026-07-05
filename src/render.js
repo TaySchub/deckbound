@@ -328,14 +328,17 @@ function drawProjectiles(ctx) {
 // The Milkshake Slurper's straw stays attached to its locked dish while sipping.
 function drawSlurpStraws(ctx) {
   for (const t of game.towers) {
-    if (t.typeId !== "sniper" || !(t.slurpShow > 0) || !t.slurpTarget || !game.enemies.includes(t.slurpTarget)) continue;
-    const x0 = t.x, y0 = t.y - 4, x1 = t.slurpTarget.x, y1 = t.slurpTarget.y;
-    const straw = () => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); };
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#0b0e14"; ctx.lineWidth = 5; straw(); ctx.stroke();
-    ctx.strokeStyle = "#f4f7fb"; ctx.lineWidth = 3.2; straw(); ctx.stroke();
-    ctx.save(); ctx.strokeStyle = "#e5484d"; ctx.lineWidth = 1.4; ctx.setLineDash([4, 4]); straw(); ctx.stroke(); ctx.restore();
-    ctx.fillStyle = "#f4f7fb"; ctx.strokeStyle = "#0b0e14"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x1, y1, 3, 0, 7); ctx.fill(); ctx.stroke();   // tip on the dish
+    if (t.typeId !== "sniper" || !(t.slurpShow > 0)) continue;
+    for (const tgt of (t.slurpTargets || [])) {   // one straw per locked dish (Silly Straw t2 → 2)
+      if (!game.enemies.includes(tgt)) continue;
+      const x0 = t.x, y0 = t.y - 4, x1 = tgt.x, y1 = tgt.y;
+      const straw = () => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); };
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#0b0e14"; ctx.lineWidth = 5; straw(); ctx.stroke();
+      ctx.strokeStyle = "#f4f7fb"; ctx.lineWidth = 3.2; straw(); ctx.stroke();
+      ctx.save(); ctx.strokeStyle = "#e5484d"; ctx.lineWidth = 1.4; ctx.setLineDash([4, 4]); straw(); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = "#f4f7fb"; ctx.strokeStyle = "#0b0e14"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x1, y1, 3, 0, 7); ctx.fill(); ctx.stroke();   // tip on the dish
+    }
   }
 }
 
