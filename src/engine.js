@@ -194,7 +194,7 @@ function tryBuild(slotIndex) {
     freezeDur: def.freezeDur || 0, maxTargets: def.maxTargets || 1,
     cdTimer: 0, upgradeFlash: 0, targeting: "first",
     lungeTimer: 0, lungeAngle: 0,   // brief lunge-toward-target on attack (drawTowers)
-    slurpTarget: null, slurpShow: 0, slurpSoundTimer: 0,   // Milkshake Slurper's attached straw
+    slurpTargets: [], slurpShow: 0, slurpSoundTimer: 0,   // Milkshake Slurper's attached straw(s)
   });
   spawnRing(s.x, s.y, def.color, 34, 0.4);
   FX.build();
@@ -241,6 +241,9 @@ function applyUpgradeDeltas(t, d) {
   if (d.crumbDamage) t.crumbDamage = d.crumbDamage;
   if (d.knockbackBase) t.knockbackBase = d.knockbackBase;   // One Big Bite t2: spit a surviving dish backward
   if (d.knockbackSizeRef) t.knockbackSizeRef = d.knockbackSizeRef;
+  // Photographer / Slurper tier-2 signatures (PR 3): dishes engaged per cooldown.
+  if (d.freezeTargets) t.freezeTargets = d.freezeTargets;   // Paparazzi t2: flash freezes 2 at once
+  if (d.drainTargets) t.drainTargets = d.drainTargets;      // Silly Straw t2: 2 straws drain at once
 }
 
 // Buy the next tier of pathId for placed tower t. The first purchase commits the
@@ -367,15 +370,21 @@ function updateTowers(step) {
     if (t.slurpShow > 0) t.slurpShow -= step;
     if (t.slurpSoundTimer > 0) t.slurpSoundTimer -= step;
     t.cdTimer -= step;
-    // The Milkshake Slurper locks its straw onto one dish and keeps sipping fast
-    // until that dish dies or leaves range — then it latches onto the next.
+    // The Milkshake Slurper latches a straw onto a dish and keeps sipping fast
+    // until it dies or leaves range, then re-targets. Silly Straw t2 runs up to
+    // `drainTargets` straws at once — each keeps its own dish independently.
     if (t.typeId === "sniper") {
-      if (!t.slurpTarget || !game.enemies.includes(t.slurpTarget) || distance(t, t.slurpTarget) > t.range) t.slurpTarget = pickTarget(t);
-      if (t.slurpTarget) {
-        t.slurpShow = 0.12;   // keep the straw drawn between sips
+      const maxStraws = t.drainTargets || 1;
+      t.slurpTargets = t.slurpTargets.filter((e) => game.enemies.includes(e) && distance(t, e) <= t.range);
+      if (t.slurpTargets.length < maxStraws) {
+        const free = game.enemies.filter((e) => distance(t, e) <= t.range && !t.slurpTargets.includes(e)).sort((a, b) => b.dist - a.dist);
+        for (const e of free) { if (t.slurpTargets.length >= maxStraws) break; t.slurpTargets.push(e); }
+      }
+      if (t.slurpTargets.length) {
+        t.slurpShow = 0.12;   // keep the straw(s) drawn between sips
         if (t.cdTimer <= 0) {
-          fireProjectile(t, t.slurpTarget); t.cdTimer = t.cooldown;
-          if (t.slurpSoundTimer <= 0) { FX.shoot("sniper"); t.slurpSoundTimer = 0.32; }   // throttle the sip sound
+          for (const e of t.slurpTargets) fireProjectile(t, e); t.cdTimer = t.cooldown;
+          if (t.slurpSoundTimer <= 0) { FX.shoot("sniper"); t.slurpSoundTimer = 0.32; }   // ONE shared sip sound, not per-straw
         }
       }
       continue;
@@ -391,8 +400,15 @@ function updateTowers(step) {
         t.cdTimer = t.cooldown;
       }
     } else {
-      const target = pickTarget(t);
-      if (target) { fireProjectile(t, target); t.cdTimer = t.cooldown; }
+      const shots = t.freezeTargets || 1;   // Paparazzi t2: one flash freezes 2 dishes at once
+      if (shots > 1) {
+        // Mirror the multi branch: fire at the frontmost `shots` dishes (pile on if fewer).
+        const inRange = game.enemies.filter((e) => distance(t, e) <= t.range).sort((a, b) => b.dist - a.dist);
+        if (inRange.length) { for (let i = 0; i < shots; i++) fireProjectile(t, inRange[i % inRange.length]); t.cdTimer = t.cooldown; }
+      } else {
+        const target = pickTarget(t);
+        if (target) { fireProjectile(t, target); t.cdTimer = t.cooldown; }
+      }
     }
   }
 }

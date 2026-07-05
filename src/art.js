@@ -375,6 +375,10 @@ function drawBigAppetite(ctx, cx, cy, r, color, opts) {
 // pops when firing (the slow effect).
 function drawPhotographer(ctx, cx, cy, r, color, opts) {
   const level = opts.level || 1, firing = !!opts.firing;
+  // Long Exposure deepens the lens (a bigger long lens each tier); Paparazzi adds
+  // flash bulbs (one flash per dish it freezes). Other paths keep the base camera.
+  const expTier = opts.path === "longExposure" ? (opts.tier || 0) : 0;
+  const papTier = opts.path === "paparazzi" ? (opts.tier || 0) : 0;
   const shirt = color, pants = "#39415a", hy = cy - r * 0.56, headR = r * 0.6, shoulderY = cy - r * 0.02;
   // Seated legs.
   ctx.fillStyle = pants; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
@@ -433,6 +437,24 @@ function drawPhotographer(ctx, cx, cy, r, color, opts) {
   ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, r * 0.06);
   ctx.beginPath(); ctx.arc(cx, camCy + camH * 0.04, r * 0.2, Math.PI * 1.05, Math.PI * 1.7); ctx.stroke();   // lens glint ring
   ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.beginPath(); ctx.arc(cx - r * 0.1, camCy - camH * 0.04, r * 0.06, 0, 7); ctx.fill();   // highlight dot
+  // Long Exposure: overdraw a bigger, deeper long lens (more glass each tier).
+  if (expTier > 0) {
+    const lensY = camCy + camH * 0.04, lr = r * (0.4 + expTier * 0.13);
+    fillCircle(ctx, cx, lensY, lr, "#171b21", 2);
+    fillCircle(ctx, cx, lensY, lr * 0.68, "#0e3a49", 1.4);
+    fillCircle(ctx, cx, lensY, lr * 0.38, "#12414f", 1);
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, r * 0.06);
+    ctx.beginPath(); ctx.arc(cx, lensY, lr * 0.52, Math.PI * 1.05, Math.PI * 1.7); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.beginPath(); ctx.arc(cx - lr * 0.3, lensY - lr * 0.3, r * 0.06, 0, 7); ctx.fill();
+  }
+  // Paparazzi: extra flash bulbs across the camera top (one per dish it freezes).
+  if (papTier > 0) {
+    ctx.fillStyle = "#e9eef6"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.4;
+    for (let i = 0; i < papTier; i++) {
+      const fx = cx + camW * 0.02 + i * r * 0.32, fy = camCy - camH / 2 - r * 0.22;
+      roundRect(ctx, fx, fy, r * 0.26, r * 0.22, r * 0.05); ctx.fill(); ctx.stroke();
+    }
+  }
   // Hands gripping the camera sides.
   fillCircle(ctx, lhx, lhy, r * 0.19, SKIN); fillCircle(ctx, rhx, rhy, r * 0.19, SKIN);
   // Flash pop when firing.
@@ -448,6 +470,10 @@ function drawPhotographer(ctx, cx, cy, r, color, opts) {
 // latches a bendy straw onto a nearby dish, sipping it away in a blur of tiny bites.
 function drawMilkshakeSlurper(ctx, cx, cy, r, color, opts) {
   const level = opts.level || 1;
+  // Extra Slurp piles whipped cream on the shake (more damage per sip); Silly Straw
+  // adds a second bendy straw (it drains 2 dishes at once). Other paths keep base.
+  const slurpTier = opts.path === "extraSlurp" ? (opts.tier || 0) : 0;
+  const strawTier = opts.path === "sillyStraw" ? (opts.tier || 0) : 0;
   const shirt = color, pants = "#39415a", shake = "#b487ec", hy = cy - r * 0.58, headR = r * 0.56, shoulderY = cy - r * 0.02;
   // Seated legs.
   ctx.fillStyle = pants; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
@@ -508,6 +534,13 @@ function drawMilkshakeSlurper(ctx, cx, cy, r, color, opts) {
   ctx.beginPath(); ctx.moveTo(cx - gTopHalf * 0.85, gTopY + r * 0.05); ctx.lineTo(cx + gTopHalf * 0.85, gTopY + r * 0.05); ctx.stroke();
   // Hands cradling the glass.
   fillCircle(ctx, lhx, lhy, r * 0.19, SKIN); fillCircle(ctx, rhx, rhy, r * 0.19, SKIN);
+  // Extra Slurp: a whipped-cream dome (+ a cherry at tier 2) mounded on the shake.
+  if (slurpTier > 0) {
+    const domeR = r * (0.22 + slurpTier * 0.13);
+    ctx.fillStyle = "#fff6ea"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.6; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.arc(cx, gTopY + r * 0.02, domeR, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (slurpTier >= 2) fillCircle(ctx, cx, gTopY - domeR * 0.72, r * 0.12, "#e5484d", 1.2);   // cherry on top
+  }
   // ---- Short straw poking up to his lips (idle sip). The long slurp reaching out
   // to a far dish is the ATTACK, drawn only when firing (attack-visuals pass). ----
   const strawPath = () => {
@@ -519,6 +552,17 @@ function drawMilkshakeSlurper(ctx, cx, cy, r, color, opts) {
   ctx.strokeStyle = "#f4f7fb"; ctx.lineWidth = r * 0.14; ctx.beginPath(); strawPath(); ctx.stroke(); // straw body
   ctx.save(); ctx.strokeStyle = "#e5484d"; ctx.lineWidth = r * 0.05; ctx.setLineDash([r * 0.14, r * 0.14]);   // candy stripe
   ctx.beginPath(); strawPath(); ctx.stroke(); ctx.restore();
+  // Silly Straw: a SECOND bendy straw (the double-drain cue), with a silly loop at tier 2.
+  if (strawTier > 0) {
+    const straw2 = () => { ctx.moveTo(cx - r * 0.16, gTopY - r * 0.04); ctx.quadraticCurveTo(cx - r * 0.34, cy - r * 0.16, cx - r * 0.2, cy - r * 0.42); };
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.strokeStyle = MDARK; ctx.lineWidth = r * 0.22; ctx.beginPath(); straw2(); ctx.stroke();
+    ctx.strokeStyle = "#f4f7fb"; ctx.lineWidth = r * 0.14; ctx.beginPath(); straw2(); ctx.stroke();
+    ctx.save(); ctx.strokeStyle = "#e5484d"; ctx.lineWidth = r * 0.05; ctx.setLineDash([r * 0.14, r * 0.14]); ctx.beginPath(); straw2(); ctx.stroke(); ctx.restore();
+    if (strawTier >= 2) {   // a loop-de-loop on the second straw
+      ctx.strokeStyle = "#f4f7fb"; ctx.lineWidth = r * 0.13; ctx.beginPath(); ctx.arc(cx - r * 0.34, cy - r * 0.5, r * 0.13, 0, 7); ctx.stroke();
+    }
+  }
   if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx + r * 0.95, hy - r * 0.5, r * 0.36); }
 }
 

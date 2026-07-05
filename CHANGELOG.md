@@ -6,6 +6,36 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **The Photographer's and the Slurper's tier-2 signatures (PR 3 of the Issue #54
+  rework)** (Implementer hat). Same path pattern as PRs 1–2.
+  - **Long Exposure t2 — deepened after-slow:** the post-freeze slow becomes
+    LONGER and STRONGER (`slowDurAdd`/`slowFactorAdd` — no new engine flag; it's
+    the one signature the Python gauge models natively, so its numbers are tuned
+    to hold the band).
+  - **Paparazzi t2 — double-freeze:** one flash cycle freezes the frontmost TWO
+    in-range dishes (a `freezeTargets` flag; the freeze branch mirrors the Kids'
+    Table's multi-target spread). Both flashes apply the full freeze→slow.
+  - **Silly Straw t2 — double drain:** the Slurper runs TWO straws at once, each
+    latching its own dish and re-targeting independently when its dish dies or
+    leaves range (the sniper's `slurpTarget` became a `slurpTargets` array;
+    `drawSlurpStraws` loops it; one shared sip-sound throttle, not per-straw).
+    Extra Slurp t2 stays pure damage.
+  - **Art escalations + contact-sheet rows:** the Photographer's lens deepens on
+    Long Exposure and gains flash bulbs on Paparazzi; the Slurper gets whipped
+    cream (+ a cherry) on Extra Slurp and a second bendy straw on Silly Straw.
+  - **Tests + the harness fix:** `tools/tests/_engine.mjs` `reset()` now sets
+    lives/currency (at 0 lives `checkLoss()` froze update()-driven tests — a PR-2
+    review footgun). New behavior tests `doublefreeze` / `extendedslow` (asserts
+    the slow is longer + stronger RELATIVE to base, never absolute) / `doublestraw`.
+  - **Verified:** balance gate **56.0%** (retuned the Long Exposure slow to hold
+    the band, stable 56–57% across seeds); all six `tools/tests/*.test.mjs` green;
+    wave-parity OK; real-engine `sim.mjs` **43.0%** (report-only, up as the
+    reference frost's slow deepened); smoke seed 1 stat = clean win, signature =
+    clean loss, both PASS with zero violations, same-seed byte-identical. Never
+    touched `src/audio.js` (the sip throttle lives in the engine). Files:
+    `data/balance.json`, `src/engine.js`, `src/render.js`, `src/art.js`,
+    `tools/tests/*`, `tools/dev/harness.html` (+ generated `balance.data.js` &
+    `index.html` stamps).
 - **Big Appetite's two tier-2 signatures + a mechanic-test harness (PR 2 of the
   Issue #54 rework)** (Implementer hat). Extends PR 1's path pattern with the
   first two *signature* mechanics and the standing test machinery the PR-1 review

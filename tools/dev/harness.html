@@ -61,7 +61,7 @@
 <h2 id="sheet-title">1 · Contact sheet — screenshot this for art PRs</h2>
 <p class="hint">Drawn by the real drawCustomer()/drawFood(). Rows: customers by tiers bought (bib at tier 1, sparkle at tier 2), attack fx where one exists, toolbar size (r=8); The Regular's upgrade-path fork escalation; food fresh / ¾HP / ½HP / hurt-flash / true belt size. Self-check against <code>docs/ART_STYLE.md</code> before requesting review.</p>
 <button id="redraw-sheet">Redraw sheet</button>
-<canvas id="sheet-canvas" width="800" height="1380"></canvas>
+<canvas id="sheet-canvas" width="800" height="1650"></canvas>
 
 <!-- ============ 2) SMOKE RUN ============ -->
 <h2 id="smoke-title">2 · Smoke run — paste the JSON in gameplay PRs</h2>
@@ -194,8 +194,42 @@
     ];
     bpStates.forEach((st, i) => drawCustomer(ctx, "cannon", bpCols[i], bpY + 92, 17, TOWER_BY_ID.cannon.color, st));
 
+    // --- The Photographer: upgrade-PATH art states (PR 3 signatures) ---
+    // Long Exposure deepens the lens (longer + stronger after-slow); Paparazzi adds
+    // flash bulbs (freezes 2 dishes at once). Bib at tier 1, sparkle at tier 2.
+    const phY = 860;
+    title("THE PHOTOGRAPHER — upgrade paths (bigger lens on Long Exposure; flashes on Paparazzi)", phY);
+    const phCols = [130, 290, 450, 600, 730];
+    const phHead = ["base", "Long Exposure 1", "Long Exposure 2", "Paparazzi 1", "Paparazzi 2"];
+    phCols.forEach((x, i) => label(phHead[i], x, phY + 22));
+    const phStates = [
+      { level: 1 },
+      { level: 2, path: "longExposure", tier: 1 },
+      { level: 3, path: "longExposure", tier: 2 },
+      { level: 2, path: "paparazzi", tier: 1 },
+      { level: 3, path: "paparazzi", tier: 2 },
+    ];
+    phStates.forEach((st, i) => drawCustomer(ctx, "frost", phCols[i], phY + 92, 17, TOWER_BY_ID.frost.color, st));
+
+    // --- The Milkshake Slurper: upgrade-PATH art states (PR 3 signatures) ---
+    // Extra Slurp mounds whipped cream (+ cherry) on the shake; Silly Straw adds a
+    // second bendy straw (drains 2 dishes), with a loop at tier 2.
+    const slY = 1000;
+    title("THE MILKSHAKE SLURPER — upgrade paths (whipped cream on Extra Slurp; 2nd straw on Silly Straw)", slY);
+    const slCols = [130, 290, 450, 600, 730];
+    const slHead = ["base", "Extra Slurp 1", "Extra Slurp 2", "Silly Straw 1", "Silly Straw 2"];
+    slCols.forEach((x, i) => label(slHead[i], x, slY + 22));
+    const slStates = [
+      { level: 1 },
+      { level: 2, path: "extraSlurp", tier: 1 },
+      { level: 3, path: "extraSlurp", tier: 2 },
+      { level: 2, path: "sillyStraw", tier: 1 },
+      { level: 3, path: "sillyStraw", tier: 2 },
+    ];
+    slStates.forEach((st, i) => drawCustomer(ctx, "sniper", slCols[i], slY + 92, 17, TOWER_BY_ID.sniper.color, st));
+
     // --- Foods: one row each; cols fresh, ¾HP, ½HP, hurt, true belt size ---
-    const fy = 940;
+    const fy = 1210;
     title("FOODS — fresh · ¾HP bite · ½HP bite · hurt flash · TRUE size on belt", fy - 26);
     const foodCols = [200, 320, 440, 560, 700];
     const foodHead = ["fresh", "¾ HP", "½ HP", "hurt", "true size"];
