@@ -5,6 +5,16 @@ Format is deliberately simple and plain-language.
 
 ## [Unreleased]
 
+### Changed
+- **Retire the Classic diner from the map picker** (Issue #77, Stage 1). The
+  American Diner (`id: "diner"`) gets a `"retired": true` data flag: the hub map
+  picker lists only non-retired maps, and with a single map left the picker row is
+  **hidden entirely** (it returns automatically when Map 2 ships). A saved
+  `META.mapId` pointing at the retired (or an unknown) map falls back to the
+  default map safely. The diner's data **stays in `balance.json`** as the
+  historical reference — the sims (`--map diner`), `--check` (prints it marked
+  "retired, report only"), and maplint still exercise it. No `GAME_BRIEF` change.
+
 ### Added
 - **Endless-only survival + Blue-Plate calibration** (Issue #75, Implementer hat).
   The finite 20-wave win is **gone**: every run is now endless and ends only in

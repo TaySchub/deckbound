@@ -25,7 +25,10 @@ window.addEventListener("DOMContentLoaded", () => {
   game.canvas = canvas;
   game.ctx = canvas.getContext("2d");
   META = loadMeta();
-  loadMap(META.mapId);   // restore the last-picked map (null/unknown → default maps[0])
+  // Restore the last-picked map, but only if it's still pickable (non-retired);
+  // a retired or unknown/null saved id falls back to the default maps[0].
+  const savedMap = MAPS.find((m) => m.id === META.mapId && !m.retired);
+  loadMap(savedMap || MAPS[0]);
   game.phase = "menu";
   setupInput(canvas);
   console.log("Deckbound v1 loaded. Essence:", META.essence);
@@ -53,11 +56,12 @@ function setupInput(canvas) {
       for (const b of shopButtonRects()) {
         if (inRect(p, b.rect)) { tryBuyShop(b.item); return; }
       }
-      if (inRect(p, MAP_BTN)) {
-        // Cycle to the next map, remember it, and load it so the hub label +
-        // the coming run both reflect the choice. One map today = a no-op click.
-        const i = MAPS.findIndex((m) => m.id === MAP.id);
-        const next = MAPS[(i + 1) % MAPS.length];
+      if (pickableMaps().length > 1 && inRect(p, MAP_BTN)) {
+        // Cycle to the next NON-RETIRED map (the picker lists only these), remember
+        // it, and load it so the hub label + the coming run reflect the choice.
+        const picks = pickableMaps();
+        const i = picks.findIndex((m) => m.id === MAP.id);
+        const next = picks[(i + 1) % picks.length];
         loadMap(next.id); META.mapId = next.id; saveMeta();
         audio.build(); return;
       }

@@ -241,6 +241,7 @@ window.BALANCE = {
       "id": "diner",
       "name": "The American Diner",
       "tuned": false,
+      "retired": true,
       "theme": {
         "floor": {
           "bg": "#10131a",
