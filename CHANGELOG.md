@@ -6,6 +6,20 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Changed
+- **Tower evenness pass — path parity via delta magnitudes** (Issue #77, Stage 2).
+  Two upgrade paths dominated their siblings on the survival gauge — **Fork Frenzy
+  +43.5 pts** and **Paparazzi +29.5** — while the other eight already sat in a tight
+  band. Four magnitude changes even all ten paths **without touching any signature's
+  identity** (pierce stays 2 hits, double-freeze 2 targets, the 4th kid stays):
+  Fork Frenzy's attack-speed `cooldownMul` 0.6→0.83 (that boost *was* the whole
+  dominance — at 1.0 it's the weakest path); frost base `freezeDur` 1.0→0.91
+  (shortens the freeze Paparazzi doubles) with Long Exposure's t1 `freezeDurAdd`
+  0.2→0.29 exactly compensating so its total freeze — and the difficulty gate — is
+  unchanged; and Speed Eater's `crumbDamage` 42→58 (its crumb splash was the weakest
+  path even before). After: every tower's two paths within **≤3.6 pts**, all ten
+  within a **5.4-pt spread** (500-sim). Gate held at **55.7%** (1000-sim); roles
+  unchanged (the Photographer is still support — 0% solo by design). No engine
+  change; no income reshaping needed. See the PR for the full before/after matrix.
 - **Retire the Classic diner from the map picker** (Issue #77, Stage 1). The
   American Diner (`id: "diner"`) gets a `"retired": true` data flag: the hub map
   picker lists only non-retired maps, and with a single map left the picker row is

@@ -467,7 +467,7 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 70,
-              "cooldownMul": 0.6
+              "cooldownMul": 0.83
             },
             {
               "cost": 120,
@@ -514,7 +514,7 @@ window.BALANCE = {
               "cost": 120,
               "cooldownMul": 0.7,
               "crumbRadius": 50,
-              "crumbDamage": 42
+              "crumbDamage": 58
             }
           ]
         },
@@ -545,7 +545,7 @@ window.BALANCE = {
       "damage": 6,
       "cooldown": 1.1,
       "behavior": "freeze",
-      "freezeDur": 1.0,
+      "freezeDur": 0.91,
       "slowFactor": 0.62,
       "slowDur": 3.0,
       "upgrades": {
@@ -554,7 +554,7 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 60,
-              "freezeDurAdd": 0.2,
+              "freezeDurAdd": 0.29,
               "damage": 3,
               "range": 12
             },
