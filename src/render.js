@@ -159,16 +159,20 @@ function drawMenu(ctx) {
     ctx.textAlign = "left";
   }
 
-  // Map picker (one entry today; ships the plumbing — future maps slot straight
-  // in). Click cycles maps; the label shows the active map's name.
-  const mapHover = inRect(game.pointer, MAP_BTN);
-  ctx.fillStyle = mapHover ? "#26324a" : "#1b2230";
-  roundRect(ctx, MAP_BTN.x, MAP_BTN.y, MAP_BTN.w, MAP_BTN.h, 8); ctx.fill();
-  ctx.strokeStyle = "#4a5670"; ctx.lineWidth = 1;
-  roundRect(ctx, MAP_BTN.x, MAP_BTN.y, MAP_BTN.w, MAP_BTN.h, 8); ctx.stroke();
-  ctx.fillStyle = COLOR.muted; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText("Map:  " + MAP.name, VIEW.w / 2, MAP_BTN.y + MAP_BTN.h / 2);
-  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+  // Map picker — shown ONLY when more than one map is pickable (non-retired).
+  // With the Classic diner retired there's a single map, so the row is hidden
+  // (PLAY_BTN keeps its fixed spot); the picker returns automatically when Map 2
+  // ships. Click cycles maps; the label shows the active map's name.
+  if (pickableMaps().length > 1) {
+    const mapHover = inRect(game.pointer, MAP_BTN);
+    ctx.fillStyle = mapHover ? "#26324a" : "#1b2230";
+    roundRect(ctx, MAP_BTN.x, MAP_BTN.y, MAP_BTN.w, MAP_BTN.h, 8); ctx.fill();
+    ctx.strokeStyle = "#4a5670"; ctx.lineWidth = 1;
+    roundRect(ctx, MAP_BTN.x, MAP_BTN.y, MAP_BTN.w, MAP_BTN.h, 8); ctx.stroke();
+    ctx.fillStyle = COLOR.muted; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("Map:  " + MAP.name, VIEW.w / 2, MAP_BTN.y + MAP_BTN.h / 2);
+    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+  }
 
   // Play button.
   const hover = inRect(game.pointer, PLAY_BTN);

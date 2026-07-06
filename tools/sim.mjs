@@ -248,7 +248,7 @@ function runOnMap(map) {
 if (has("check")) {
   let failed = false;
   E.MAPS.forEach((m, i) => {
-    if (E.MAPS.length > 1) { if (i > 0) console.log(""); console.log(`=== ${m.name} (${m.id})${m.tuned ? "" : " — untuned, report only"} ===`); }
+    if (E.MAPS.length > 1) { if (i > 0) console.log(""); console.log(`=== ${m.name} (${m.id})${m.retired ? " — retired, report only" : m.tuned ? "" : " — untuned, report only"} ===`); }
     const inBand = runOnMap(m);
     if (m.tuned && !inBand) failed = true;
   });

@@ -72,7 +72,16 @@ let MAP, PATH, CORE, SEGMENT_LENGTHS, PATH_LENGTH, PLACEMENT, OBSTACLES, SIM_ANC
 // Swap in a map by id, or by a raw map object (the behavior test injects a
 // fixture). Pure state rebind — consumes NO Math.random, so the seeded sim is
 // untouched. A missing/unknown id falls back to the default map.
+// The pickable maps (hub picker + saved-map restore): everything not flagged
+// `retired`. A retired map stays in MAPS as a historical reference — the sims,
+// maplint, and an explicit loadMap("id") still exercise it — it just leaves the
+// player-facing picker. Callers that restore a *saved* choice filter with this.
+function pickableMaps() { return MAPS.filter((x) => !x.retired); }
+
 function loadMap(idOrMap) {
+  // Loads ANY map by id or object (retired included, so `--map diner` + tests
+  // still work). The retired→fallback policy lives at the saved-mapId restore
+  // site (src/main.js boot), not here.
   let m = typeof idOrMap === "string" ? MAPS.find((x) => x.id === idOrMap) : idOrMap;
   if (!m) m = MAPS[0];
   MAP = m;
