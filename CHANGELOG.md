@@ -6,6 +6,29 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Changed
+- **The economy is rebuilt so the game is fun from wave 1** (economy overhaul,
+  stage 3; developer-ratified design, numbers only — no mechanic or upgrade
+  delta moved). Everything repriced ~4-5x with real cheap/mid/premium spread:
+  start **800** Tips (was 150), flat **170**/wave (was 40), towers **150-450**
+  (Kids' Table 150 · Regular 250 · Photographer 300 · Big Appetite 400 ·
+  Slurper 450), tiers **150-700** (full table + per-value rationale in the PR).
+  Bounties are size-scaled: Fry 5 · Slider 10 · Hot Dog 15 · Steak 35 — income
+  now ramps with threat automatically, and the mix lands **39/61**
+  flat-to-kills with the flat floor (170 ≥ a whole Kids' Table) keeping a
+  leaking board repairable every wave. Wave generation untouched (the existing
+  typeUnlock schedule already ramps small→heavy). The reference now fields
+  **4 towers by wave 3** (was 2 by wave 3 and broke until wave 15), makes a
+  purchase **every wave 1-21** plus a save-up beat at 22 and buys through 24
+  (was: done at 21 with an 8-wave dead bank), and hits its first tier-2 at
+  wave 5 (cheap tower) / wave 10 (first premium tier-2). Verified: blueplate
+  survival@30 **57.0%** (seed 1/200, the CI config — 5pts above the band
+  floor, ending the 50.5%-on-the-floor fragility), **52.0/54.0%** at seeds
+  1000/5000, **56.7%** at 1000 sims; spam probe 28.5% (width still loses);
+  path-value matrix within ±4.5pts; all-signature premium re-measured +20pts
+  (the known structural synergy, damped from +25.5 via the two hottest
+  signature tier-2 costs); pacing median 29.5s/wave, run-to-30 14.4 sim-min;
+  all tests + maplint green (sell.test.mjs now funds itself explicitly —
+  behavior tests must not depend on tuned prices).
 - **Economy mechanics land, provably inert** (economy overhaul, stage 2;
   developer-approved — the numbers move in stage 3):
   - **Per-kill bounties are now explicit data.** Each dish's on-kill Tips payout
