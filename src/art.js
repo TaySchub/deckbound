@@ -1126,6 +1126,58 @@ function drawSoftShadow(ctx, x, y, rx, ry, color) {
   ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fill(); ctx.restore();
 }
 
+// Subtle on-belt cues for the enemy STATUS layer (Roster Growth 2) — the same
+// "state language" tier as the slow ring / freeze brackets. Deterministic
+// (elapsed-driven wobble, no RNG) and drawn over the food so a glance answers
+// "what's on that dish":
+//   smoke dot → little gray curls rising off it (more stacks = more curls);
+//   ranch dot → a creamy coating arc + drips sliding down (NOT the cyan slow
+//               ring — that stays the Photographer's after-slow);
+//   amp mark  → a gold toothpick sample-flag planted on top.
+function drawStatusCues(ctx, e, elapsed) {
+  const r = e.radius || 10;
+  ctx.save();
+  for (const d of e.dots || []) {
+    if (d.src === "smoke") {
+      const curls = Math.min(3, Math.ceil(d.stacks / 2) + (d.stacks >= d.maxStacks ? 1 : 0));
+      ctx.strokeStyle = "#9aa2ad"; ctx.lineWidth = 1.6; ctx.lineCap = "round"; ctx.globalAlpha = 0.75;
+      for (let i = 0; i < curls; i++) {
+        const ph = elapsed * 2.2 + i * 2.1;
+        const cx = e.x + (i - (curls - 1) / 2) * (r * 0.7);
+        const cy = e.y - r - 3 - ((ph * 6) % 8);
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, cy + 3);
+        ctx.quadraticCurveTo(cx + 3, cy + 1, cx - 1, cy - 2);
+        ctx.quadraticCurveTo(cx - 4, cy - 4, cx + 1, cy - 6);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    } else if (d.src === "ranch") {
+      ctx.strokeStyle = "#f2ead9"; ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.arc(e.x, e.y, r + 1, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      const drips = Math.min(3, d.stacks);
+      ctx.fillStyle = "#f2ead9";
+      for (let i = 0; i < drips; i++) {
+        const a = Math.PI * (1.25 + i * 0.25);
+        const dx = e.x + Math.cos(a) * (r + 1), dy = e.y + Math.sin(a) * (r + 1);
+        const slide = 2 + ((elapsed * 3 + i) % 2);
+        ctx.beginPath(); ctx.ellipse(dx, dy + slide, 1.4, 2.4, 0, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  if (e.ampMul > 1) {
+    // The sample flag: a toothpick with a little gold pennant, planted on top.
+    const fx = e.x + r * 0.35, fy = e.y - r - 2;
+    ctx.strokeStyle = MDARK; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 7); ctx.stroke();
+    ctx.fillStyle = "#ffcf4a"; ctx.strokeStyle = MDARK; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(fx, fy - 7); ctx.lineTo(fx + 6, fy - 5.5); ctx.lineTo(fx, fy - 4); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);

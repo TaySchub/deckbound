@@ -35,6 +35,8 @@ export function loadEngine() {
        fireProjectile, moveProjectiles, update, applyDamage, moveEnemies,
        applyUpgradeDeltas, towerPaths, nextTier, updateTowers, TOWER_BY_ID, ENEMY_TYPES, RULES, canPlace, distance,
        loadMap, MAPS, pointAtDistance, eaterBiteCooldown,
+       // Status layer (Roster Growth 2) — the DOT/AMP subsystem + its tick.
+       applyDot, applyAmp, maxDotStacks, statusSlowFactor, updateStatuses, STATUS_TICK,
        // META accessor for the auto-start test (META is a let binding, so a
        // plain property would capture a stale reference).
        getMeta() { return META; },
@@ -71,7 +73,8 @@ export function done(name) {
 // touches (see spawnWaveEnemies).
 export function makeEnemy({ x = 0, y = 0, dist = 0, hp = 1e6, radius = 12, typeId = "mote", speed = 0, bounty = 5 } = {}) {
   return { typeId, x, y, dist, hp, maxHp: hp, radius, bounty, speed,
-           hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0 };
+           hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0,
+           dots: [], ampMul: 1, ampTimer: 0, ampBonus: 0 };
 }
 
 // A bare placed-tower struct with the fields fireProjectile + updateTowers read;

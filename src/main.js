@@ -262,3 +262,8 @@ for (const k of ["shoot", "hit", "kill", "leak", "upgrade", "build", "deny", "wa
 for (const k of ["crumb", "knockback", "doubleFreeze", "fourthHand", "place", "sell"]) {
   FX[k] = (...args) => audio[k](...args);
 }
+// Status layer (Roster Growth 2): a status LANDING borrows the light hit tick
+// (closest existing sound — bespoke status audio rides a future audio pass).
+// statusTick stays unwired: the tick's damage already plays FX.hit through
+// applyDamage, so wiring it would double every dot tick.
+FX.statusApply = () => audio.hit();

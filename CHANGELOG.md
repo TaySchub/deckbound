@@ -6,6 +6,23 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **The enemy STATUS layer** (Roster Growth 2, stage 1; Implementer hat) — the
+  generic gateway the researched status towers ride, shipped PROVABLY INERT
+  (no tower applies a status yet). Two effects, scoped to exactly what stage 2
+  uses: stacking **DOTs** (per-source-kind entries with a stack cap, duration
+  refresh on reapply, flat + per-stack dps, optional per-stack slow with a
+  floor — ticked every 0.5s through the NORMAL damage path so bounties, kill
+  credit, and amp all apply) and the **AMP vulnerability mark** (multiplier on
+  all damage taken; non-stacking, strongest wins, duration refreshes; carries
+  an optional bonus-Tips-on-death payload). Statuses are plain fields on the
+  enemy object (the slowTimer precedent); bookkeeping consumes zero
+  Math.random; `FX.statusApply`/`FX.statusTick` hooks are no-op headless and
+  wired in main.js (apply borrows the light hit tick; tick stays silent — its
+  damage already plays the normal hit). Render shows subtle cues via
+  `drawStatusCues`: smoke curls / creamy ranch drips / a gold sample flag.
+  Behavior test: `tools/tests/status.test.mjs`. Verified inert: gate + both
+  smokes byte-identical to main (blueplate 57.0%, diner 34.5% report-only;
+  smoke 22/3575 stat, 22/3265 signature).
 - **Roster Growth 1 — a scrolling tower rail + two new towers** (Implementer +
   Designer + Art hats). The left rail now **scrolls** once the deck outgrows the 5
   cards it fits (7 today, ~12 planned): drag/swipe on touch (with an 8px drag

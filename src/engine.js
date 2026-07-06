@@ -18,6 +18,11 @@ const FX = {
   // default and side-effect-only — the headless sim runs them as no-ops, so the
   // difficulty gauge can't move; src/main.js wires them to real sounds.
   crumb() {}, knockback(scale) {}, doubleFreeze() {}, fourthHand() {}, place() {}, sell() {},
+  // Status-system hooks (Roster Growth 2): a status landing on a dish / a DOT
+  // tick doing its damage. No-op by default (the headless sim never hears them);
+  // src/main.js wires apply to the closest existing sound and leaves tick silent
+  // (the tick's damage already plays the normal hit through applyDamage → FX.hit).
+  statusApply(kind) {}, statusTick(kind) {},
 };
 
 /* =========================================================================
@@ -567,6 +572,7 @@ function update(step) {
   updateParticles(step);
   if (game.phase === "wave") {
     spawnWaveEnemies(step);
+    updateStatuses(step);   // dot ticks + amp expiry BEFORE movement: a tick kill this frame prevents this frame's leak
     moveEnemies(step);
     checkWaveEnd();
     checkLoss();
@@ -581,7 +587,9 @@ function spawnWaveEnemies(step) {
     const typeId = game.spawnQueue.shift();
     const et = ENEMY_TYPES[typeId];
     const hp = Math.round(game.waveHp * et.hpMul);
-    game.enemies.push({ typeId, dist: 0, speed: game.waveSpeed * et.speedMul, hp, maxHp: hp, radius: et.radius, bounty: et.bounty, hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0 });
+    // dots/ampMul/ampTimer/ampBonus: the status layer (Roster Growth 2) — plain
+    // fields like slowTimer/freezeTimer, empty/neutral until a status tower acts.
+    game.enemies.push({ typeId, dist: 0, speed: game.waveSpeed * et.speedMul, hp, maxHp: hp, radius: et.radius, bounty: et.bounty, hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0, dots: [], ampMul: 1, ampTimer: 0, ampBonus: 0 });
   }
 }
 
@@ -592,6 +600,7 @@ function moveEnemies(step) {
     if (e.freezeTimer > 0) { e.freezeTimer -= step; speed = 0; }
     else if (e.slowTimer > 0) { speed *= e.slowFactor; }
     if (e.slowTimer > 0) { e.slowTimer -= step; if (e.slowTimer <= 0) e.slowFactor = 1; }
+    speed *= statusSlowFactor(e);   // stacking status slows (Roster Growth 2) — 1 when no dot carries a slow
     e.dist += speed * step;
     const p = pointAtDistance(e.dist);
     e.x = p.x; e.y = p.y;
@@ -599,6 +608,115 @@ function moveEnemies(step) {
     if (e.dist >= PATH_LENGTH) { e.reachedCore = true; game.lives = Math.max(0, game.lives - 1); game.coreHurtFlash = 0.35; game.shake = 6; FX.leak(); }
   }
   game.enemies = game.enemies.filter((e) => !e.reachedCore);
+}
+
+/* =========================================================================
+   ENEMY STATUS LAYER (Roster Growth 2) — the generic gateway six of the
+   researched towers ride. Statuses are PLAIN FIELDS on the enemy object (the
+   slowTimer/freezeTimer precedent — no class machinery):
+
+     e.dots     — stacking damage-over-time entries, ONE per source kind
+                  ("smoke", "ranch", …), so the stack cap is per source type:
+                  { src, dps, dpsPerStack, stacks, maxStacks, duration,
+                    slowPerStack, slowFloor, tickIn }
+     e.ampMul   — vulnerability multiplier on ALL damage taken (1 = none);
+     e.ampTimer   non-stacking, strongest wins, duration refreshes;
+     e.ampBonus — extra Tips paid on the marked dish's death (the amp payload
+                  the Sample Lady's Loss Leader uses; rides the amp timer).
+
+   Ticking is DISCRETE (every STATUS_TICK seconds) and goes through the normal
+   applyDamage path, so amp multiplies it, kill credit / bounties / FX all work,
+   and a dot death is a normal death. The layer's own bookkeeping (apply /
+   stack / expiry / slow / tick scheduling) consumes ZERO Math.random — the
+   only RNG a tick can reach is applyDamage's cosmetic sparks, identical to any
+   other hit, and no reference-build tower applies statuses so the gate never
+   sees it (the RG1 cook-sear ruling).
+   Tick order (update): towers fire → projectiles land → spawns → STATUS TICKS →
+   movement (so a dot kill this frame prevents this frame's leak) → wave end.
+   ========================================================================= */
+
+const STATUS_TICK = 0.5;   // seconds between dot ticks (total dot damage = dps·duration when duration is a multiple)
+
+// Land (or refresh) a stacking DOT of kind `src` on a dish. Reapply: +1 stack
+// (capped at maxStacks), duration restarts, and strengths take the strongest
+// applier seen (two towers sharing a source kind share the entry + cap).
+function applyDot(e, src, opts) {
+  if (!e.dots) e.dots = [];
+  let d = e.dots.find((x) => x.src === src);
+  if (!d) {
+    d = { src, dps: 0, dpsPerStack: 0, stacks: 0, maxStacks: 1, duration: 0, slowPerStack: 0, slowFloor: 1, tickIn: STATUS_TICK };
+    e.dots.push(d);
+  }
+  d.maxStacks = Math.max(d.maxStacks, opts.maxStacks || 1);
+  d.stacks = Math.min(d.stacks + 1, d.maxStacks);
+  d.duration = opts.duration;
+  d.dps = Math.max(d.dps, opts.dps || 0);
+  d.dpsPerStack = Math.max(d.dpsPerStack, opts.dpsPerStack || 0);
+  d.slowPerStack = Math.max(d.slowPerStack, opts.slowPerStack || 0);
+  d.slowFloor = Math.min(d.slowFloor, opts.slowFloor != null ? opts.slowFloor : 1);
+  FX.statusApply(src);
+  return d;
+}
+
+// Jump an existing dot of kind `src` straight to its stack cap (Ranch Keg's
+// instant full drench). No-op if the dish has no such dot yet.
+function maxDotStacks(e, src) {
+  const d = e.dots && e.dots.find((x) => x.src === src);
+  if (d) d.stacks = d.maxStacks;
+}
+
+// Mark a dish as VULNERABLE: takes mul× damage from ALL sources while active.
+// Non-stacking — the strongest mark wins; an equal mark refreshes the clock; a
+// weaker one is ignored. `bonus` is extra Tips paid if the dish dies marked.
+function applyAmp(e, mul, duration, bonus = 0) {
+  if (mul < (e.ampMul || 1)) return;                        // weaker → ignored
+  if (mul > (e.ampMul || 1)) e.ampTimer = duration;         // stronger → replace
+  else e.ampTimer = Math.max(e.ampTimer || 0, duration);    // equal → refresh
+  e.ampMul = mul;
+  e.ampBonus = Math.max(e.ampBonus || 0, bonus);
+  FX.statusApply("amp");
+}
+
+// The combined speed multiplier the enemy's dot slows impose (1 = none). Each
+// slowing source computes max(floor, 1 − perStack·stacks); the STRONGEST single
+// source wins (sources don't multiply together — no stacking to a standstill).
+function statusSlowFactor(e) {
+  if (!e.dots || e.dots.length === 0) return 1;
+  let f = 1;
+  for (const d of e.dots) {
+    if (d.slowPerStack > 0) f = Math.min(f, Math.max(d.slowFloor, 1 - d.slowPerStack * d.stacks));
+  }
+  return f;
+}
+
+// Advance every status clock: dot ticks (through applyDamage — normal deaths,
+// bounties, amp all apply) and amp expiry. Zero Math.random.
+function updateStatuses(step) {
+  for (const e of [...game.enemies]) {
+    if (e.ampTimer > 0) {
+      e.ampTimer -= step;
+      if (e.ampTimer <= 0) { e.ampMul = 1; e.ampBonus = 0; }
+    }
+    if (!e.dots || e.dots.length === 0) continue;
+    // EPS absorbs fixed-timestep float drift so a tick scheduled exactly at the
+    // dot's end (duration a multiple of STATUS_TICK) still fires before expiry.
+    const EPS = 1e-9;
+    let died = false;
+    for (const d of e.dots) {
+      d.duration -= step;
+      d.tickIn -= step;
+      if (d.tickIn <= EPS) {
+        d.tickIn += STATUS_TICK;
+        const dmg = (d.dps + d.dpsPerStack * d.stacks) * STATUS_TICK;
+        if (dmg > 0) {
+          applyDamage(e, dmg);
+          FX.statusTick(d.src);
+          if (!game.enemies.includes(e)) { died = true; break; }   // the tick ate it
+        }
+      }
+    }
+    if (!died) e.dots = e.dots.filter((d) => d.duration > EPS);
+  }
 }
 
 // The four targeting modes a player can set per tower. "first" (furthest along
@@ -859,6 +977,7 @@ function resolveHit(p) {
 }
 
 function applyDamage(enemy, dmg) {
+  if (enemy.ampMul > 1) dmg *= enemy.ampMul;   // vulnerability mark: ALL damage sources hit harder (status layer)
   enemy.hp -= dmg;
   enemy.hurtFlash = 0.08;
   if (enemy.hp <= 0 && !enemy.reachedCore) {
@@ -872,6 +991,13 @@ function applyDamage(enemy, dmg) {
       game.currency += enemy.bounty;
       game.score += enemy.bounty;
       spawnFloatText(enemy.x, enemy.y - 14, "+$" + enemy.bounty + " tip", COLOR.gold);
+    }
+    // Amp payload (status layer): a dish that dies MARKED pays its mark's bonus
+    // Tips on top of the bounty (the Sample Lady's Loss Leader path sets this).
+    if (enemy.ampBonus > 0) {
+      game.currency += enemy.ampBonus;
+      game.score += enemy.ampBonus;
+      spawnFloatText(enemy.x, enemy.y - 24, "+$" + enemy.ampBonus + " sample", COLOR.essence);
     }
     FX.kill();
   } else {

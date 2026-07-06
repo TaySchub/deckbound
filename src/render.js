@@ -585,6 +585,8 @@ function drawEnemies(ctx) {
     // Eaten-down bites: one past 3/4 HP, two past 1/2 HP.
     const frac = e.hp / e.maxHp, bites = frac <= 0.5 ? 2 : frac <= 0.75 ? 1 : 0;
     drawFood(ctx, e.typeId, e.x, e.y, e.radius, et.color, et.edge, e.hurtFlash > 0, bites);
+    // Status cues (Roster Growth 2): smoke curls / ranch drips / the amp flag.
+    if ((e.dots && e.dots.length) || e.ampMul > 1) drawStatusCues(ctx, e, game.elapsed);
     // Posing for the photo: a slight overexposed tint + camera-viewfinder corner
     // brackets framing the held-still dish (no ice — it's a snapshot, not a freeze).
     if (e.freezeTimer > 0) {
