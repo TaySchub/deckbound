@@ -18,6 +18,11 @@ const FX = {
   // default and side-effect-only — the headless sim runs them as no-ops, so the
   // difficulty gauge can't move; src/main.js wires them to real sounds.
   crumb() {}, knockback(scale) {}, doubleFreeze() {}, fourthHand() {}, place() {}, sell() {},
+  // Status-system hooks (Roster Growth 2): a status landing on a dish / a DOT
+  // tick doing its damage. No-op by default (the headless sim never hears them);
+  // src/main.js wires apply to the closest existing sound and leaves tick silent
+  // (the tick's damage already plays the normal hit through applyDamage → FX.hit).
+  statusApply(kind) {}, statusTick(kind) {},
 };
 
 /* =========================================================================
@@ -35,8 +40,10 @@ function freshMeta() {
   // (0 = instant). Persisted like every other META field.
   // unlocked: the towers available from the hub/rail. The Short-Order Cook and
   // Competitive Eater ship INSTANTLY available (developer decision, Roster Growth
-  // 1) alongside the original four; the Slurper (sniper) stays Essence-gated.
-  return { essence: 0, unlocked: ["arrow", "cannon", "frost", "zap", "cook", "eater"], boughtCurrency: false, boughtLives: false, mapId: null, bestWave: 0, autoStart: "off" };
+  // 1), as do the Pitmaster / Ranch Fountain / Sample Lady (Roster Growth 2 —
+  // loadMeta's unlocked-set UNION migration hands them to veteran saves too);
+  // the Slurper (sniper) stays Essence-gated.
+  return { essence: 0, unlocked: ["arrow", "cannon", "frost", "zap", "cook", "eater", "pit", "ranch", "sample"], boughtCurrency: false, boughtLives: false, mapId: null, bestWave: 0, autoStart: "off" };
 }
 function loadMeta() {
   try {
@@ -416,6 +423,15 @@ function tryBuild(x, y) {
     combo: 0, comboCap: def.comboCap || 0, comboRamp: def.comboRamp || 0,   // Competitive Eater combo (bite-speed ramp)
     solomonSplit: false,  // Competitive Eater "Solomon Method" t2: a bite lands as two half-hits
     mustardBonus: 0,      // Competitive Eater "Mustard Belt" t2: bounty bonus while at max combo
+    // Roster Growth 2 status-tower stats (balance.json values; 0/neutral for
+    // every other tower — these are what the pit/ranch/sample branches read).
+    smokeDps: def.smokeDps || 0, smokeDuration: def.smokeDuration || 0, smokeStacks: def.smokeStacks || 0,
+    burntEnds: 0, probeThreshold: 0, carryStacks: 0,   // Pitmaster t2 signatures + Burnt Ends bank
+    ranchDps: def.ranchDps || 0, dpsPerStack: 0, ranchDuration: def.ranchDuration || 0, ranchStacks: def.ranchStacks || 0,
+    slowPerStack: def.slowPerStack || 0, slowFloor: def.slowFloor != null ? def.slowFloor : 1,
+    coneHalfDeg: def.coneHalfDeg || 0, kegPeriod: 0, kegTimer: 0,   // Ranch Fountain cone + Keg burst
+    stunDur: def.stunDur || 0, ampMul: def.ampMul || 0, ampDur: def.ampDur || 0,
+    lossLeader: 0, bulkTargets: def.bulkTargets || 1, bulkRadius: 0,   // Sample Lady mark + t2 signatures
   });
   spawnRing(x, y, def.color, 34, 0.4);
   FX.place();
@@ -472,6 +488,18 @@ function applyUpgradeDeltas(t, d) {
   if (d.comboCapAdd) t.comboCap += d.comboCapAdd;                 // Record Pace (eater): a higher combo ceiling
   if (d.solomonSplit) t.solomonSplit = true;                     // Solomon Method t2 (eater): a bite lands as two half-hits
   if (d.mustardBonus) t.mustardBonus = d.mustardBonus;           // Mustard Belt t2 (eater): bounty bonus at max combo
+  // Roster Growth 2 tier signatures (the status towers).
+  if (d.smokeStacksAdd) t.smokeStacks += d.smokeStacksAdd;       // Competition Rub t1 (pit): higher smoke-stack cap
+  if (d.burntEnds) t.burntEnds = d.burntEnds;                    // The Stall t2 (pit): stacks carry to the next locked dish
+  if (d.probeThreshold) t.probeThreshold = d.probeThreshold;     // Competition Rub t2 (pit): execute below this HP fraction at full stacks
+  if (d.slowPerStackAdd) t.slowPerStack += d.slowPerStackAdd;    // Extra Dressing t1 (ranch): stronger slow per coat
+  if (d.dpsPerStackAdd) t.dpsPerStack += d.dpsPerStackAdd;       // Ranch on Everything t2 (ranch): the drizzle ramps with coats
+  if (d.coneHalfAdd) t.coneHalfDeg += d.coneHalfAdd;             // Wider Nozzle t1 (ranch): a wider cone
+  if (d.kegPeriod) t.kegPeriod = d.kegPeriod;                    // Ranch Keg t2 (ranch): periodic instant-max drench
+  if (d.ampMulAdd) t.ampMul += d.ampMulAdd;                      // Hard Sell t1 (sample): a stronger mark
+  if (d.lossLeader) t.lossLeader = d.lossLeader;                 // Loss Leader t2 (sample): marked dishes pay bonus Tips on death
+  if (d.bulkTargets) t.bulkTargets = d.bulkTargets;              // Bulk Buy t2 (sample): mark several dishes at once…
+  if (d.bulkRadius) t.bulkRadius = d.bulkRadius;                 // …within this radius of the sampled one
 }
 
 // Buy the next tier of pathId for placed tower t. The first purchase commits the
@@ -567,6 +595,7 @@ function update(step) {
   updateParticles(step);
   if (game.phase === "wave") {
     spawnWaveEnemies(step);
+    updateStatuses(step);   // dot ticks + amp expiry BEFORE movement: a tick kill this frame prevents this frame's leak
     moveEnemies(step);
     checkWaveEnd();
     checkLoss();
@@ -581,7 +610,9 @@ function spawnWaveEnemies(step) {
     const typeId = game.spawnQueue.shift();
     const et = ENEMY_TYPES[typeId];
     const hp = Math.round(game.waveHp * et.hpMul);
-    game.enemies.push({ typeId, dist: 0, speed: game.waveSpeed * et.speedMul, hp, maxHp: hp, radius: et.radius, bounty: et.bounty, hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0 });
+    // dots/ampMul/ampTimer/ampBonus: the status layer (Roster Growth 2) — plain
+    // fields like slowTimer/freezeTimer, empty/neutral until a status tower acts.
+    game.enemies.push({ typeId, dist: 0, speed: game.waveSpeed * et.speedMul, hp, maxHp: hp, radius: et.radius, bounty: et.bounty, hurtFlash: 0, slowTimer: 0, slowFactor: 1, freezeTimer: 0, dots: [], ampMul: 1, ampTimer: 0, ampBonus: 0 });
   }
 }
 
@@ -592,6 +623,7 @@ function moveEnemies(step) {
     if (e.freezeTimer > 0) { e.freezeTimer -= step; speed = 0; }
     else if (e.slowTimer > 0) { speed *= e.slowFactor; }
     if (e.slowTimer > 0) { e.slowTimer -= step; if (e.slowTimer <= 0) e.slowFactor = 1; }
+    speed *= statusSlowFactor(e);   // stacking status slows (Roster Growth 2) — 1 when no dot carries a slow
     e.dist += speed * step;
     const p = pointAtDistance(e.dist);
     e.x = p.x; e.y = p.y;
@@ -599,6 +631,115 @@ function moveEnemies(step) {
     if (e.dist >= PATH_LENGTH) { e.reachedCore = true; game.lives = Math.max(0, game.lives - 1); game.coreHurtFlash = 0.35; game.shake = 6; FX.leak(); }
   }
   game.enemies = game.enemies.filter((e) => !e.reachedCore);
+}
+
+/* =========================================================================
+   ENEMY STATUS LAYER (Roster Growth 2) — the generic gateway six of the
+   researched towers ride. Statuses are PLAIN FIELDS on the enemy object (the
+   slowTimer/freezeTimer precedent — no class machinery):
+
+     e.dots     — stacking damage-over-time entries, ONE per source kind
+                  ("smoke", "ranch", …), so the stack cap is per source type:
+                  { src, dps, dpsPerStack, stacks, maxStacks, duration,
+                    slowPerStack, slowFloor, tickIn }
+     e.ampMul   — vulnerability multiplier on ALL damage taken (1 = none);
+     e.ampTimer   non-stacking, strongest wins, duration refreshes;
+     e.ampBonus — extra Tips paid on the marked dish's death (the amp payload
+                  the Sample Lady's Loss Leader uses; rides the amp timer).
+
+   Ticking is DISCRETE (every STATUS_TICK seconds) and goes through the normal
+   applyDamage path, so amp multiplies it, kill credit / bounties / FX all work,
+   and a dot death is a normal death. The layer's own bookkeeping (apply /
+   stack / expiry / slow / tick scheduling) consumes ZERO Math.random — the
+   only RNG a tick can reach is applyDamage's cosmetic sparks, identical to any
+   other hit, and no reference-build tower applies statuses so the gate never
+   sees it (the RG1 cook-sear ruling).
+   Tick order (update): towers fire → projectiles land → spawns → STATUS TICKS →
+   movement (so a dot kill this frame prevents this frame's leak) → wave end.
+   ========================================================================= */
+
+const STATUS_TICK = 0.5;   // seconds between dot ticks (total dot damage = dps·duration when duration is a multiple)
+
+// Land (or refresh) a stacking DOT of kind `src` on a dish. Reapply: +1 stack
+// (capped at maxStacks), duration restarts, and strengths take the strongest
+// applier seen (two towers sharing a source kind share the entry + cap).
+function applyDot(e, src, opts) {
+  if (!e.dots) e.dots = [];
+  let d = e.dots.find((x) => x.src === src);
+  if (!d) {
+    d = { src, dps: 0, dpsPerStack: 0, stacks: 0, maxStacks: 1, duration: 0, slowPerStack: 0, slowFloor: 1, tickIn: STATUS_TICK };
+    e.dots.push(d);
+  }
+  d.maxStacks = Math.max(d.maxStacks, opts.maxStacks || 1);
+  d.stacks = Math.min(d.stacks + 1, d.maxStacks);
+  d.duration = opts.duration;
+  d.dps = Math.max(d.dps, opts.dps || 0);
+  d.dpsPerStack = Math.max(d.dpsPerStack, opts.dpsPerStack || 0);
+  d.slowPerStack = Math.max(d.slowPerStack, opts.slowPerStack || 0);
+  d.slowFloor = Math.min(d.slowFloor, opts.slowFloor != null ? opts.slowFloor : 1);
+  FX.statusApply(src);
+  return d;
+}
+
+// Jump an existing dot of kind `src` straight to its stack cap (Ranch Keg's
+// instant full drench). No-op if the dish has no such dot yet.
+function maxDotStacks(e, src) {
+  const d = e.dots && e.dots.find((x) => x.src === src);
+  if (d) d.stacks = d.maxStacks;
+}
+
+// Mark a dish as VULNERABLE: takes mul× damage from ALL sources while active.
+// Non-stacking — the strongest mark wins; an equal mark refreshes the clock; a
+// weaker one is ignored. `bonus` is extra Tips paid if the dish dies marked.
+function applyAmp(e, mul, duration, bonus = 0) {
+  if (mul < (e.ampMul || 1)) return;                        // weaker → ignored
+  if (mul > (e.ampMul || 1)) e.ampTimer = duration;         // stronger → replace
+  else e.ampTimer = Math.max(e.ampTimer || 0, duration);    // equal → refresh
+  e.ampMul = mul;
+  e.ampBonus = Math.max(e.ampBonus || 0, bonus);
+  FX.statusApply("amp");
+}
+
+// The combined speed multiplier the enemy's dot slows impose (1 = none). Each
+// slowing source computes max(floor, 1 − perStack·stacks); the STRONGEST single
+// source wins (sources don't multiply together — no stacking to a standstill).
+function statusSlowFactor(e) {
+  if (!e.dots || e.dots.length === 0) return 1;
+  let f = 1;
+  for (const d of e.dots) {
+    if (d.slowPerStack > 0) f = Math.min(f, Math.max(d.slowFloor, 1 - d.slowPerStack * d.stacks));
+  }
+  return f;
+}
+
+// Advance every status clock: dot ticks (through applyDamage — normal deaths,
+// bounties, amp all apply) and amp expiry. Zero Math.random.
+function updateStatuses(step) {
+  for (const e of [...game.enemies]) {
+    if (e.ampTimer > 0) {
+      e.ampTimer -= step;
+      if (e.ampTimer <= 0) { e.ampMul = 1; e.ampBonus = 0; }
+    }
+    if (!e.dots || e.dots.length === 0) continue;
+    // EPS absorbs fixed-timestep float drift so a tick scheduled exactly at the
+    // dot's end (duration a multiple of STATUS_TICK) still fires before expiry.
+    const EPS = 1e-9;
+    let died = false;
+    for (const d of e.dots) {
+      d.duration -= step;
+      d.tickIn -= step;
+      if (d.tickIn <= EPS) {
+        d.tickIn += STATUS_TICK;
+        const dmg = (d.dps + d.dpsPerStack * d.stacks) * STATUS_TICK;
+        if (dmg > 0) {
+          applyDamage(e, dmg);
+          FX.statusTick(d.src);
+          if (!game.enemies.includes(e)) { died = true; break; }   // the tick ate it
+        }
+      }
+    }
+    if (!died) e.dots = e.dots.filter((d) => d.duration > EPS);
+  }
 }
 
 // The four targeting modes a player can set per tower. "first" (furthest along
@@ -632,12 +773,24 @@ function eaterBiteCooldown(t) {
   return t.cooldown / (1 + stacks * t.comboRamp);
 }
 
+// THE cone check (Roster Growth 2) — the one place cone-targeting math lives.
+// A dish is in the cone when it's within `range` of the origin AND within
+// `halfRad` radians either side of the aim angle. Pure; no RNG.
+function inCone(origin, aimAngle, halfRad, range, e) {
+  if (distance(origin, e) > range) return false;
+  let da = Math.atan2(e.y - origin.y, e.x - origin.x) - aimAngle;
+  while (da > Math.PI) da -= Math.PI * 2;
+  while (da < -Math.PI) da += Math.PI * 2;
+  return Math.abs(da) <= halfRad;
+}
+
 function updateTowers(step) {
   for (const t of game.towers) {
     if (t.upgradeFlash > 0) t.upgradeFlash -= step;
     if (t.lungeTimer > 0) t.lungeTimer -= step;
     if (t.slurpShow > 0) t.slurpShow -= step;
     if (t.slurpSoundTimer > 0) t.slurpSoundTimer -= step;
+    if (t.kegTimer > 0) t.kegTimer -= step;   // Ranch Keg burst clock (ranch only; 0 elsewhere)
     t.cdTimer -= step;
     // The Milkshake Slurper latches a straw onto a dish and keeps sipping fast
     // until it dies or leaves range, then re-targets. Silly Straw t2 runs up to
@@ -694,6 +847,103 @@ function updateTowers(step) {
         t.cdTimer = eaterBiteCooldown(t);
         if (t.slurpSoundTimer <= 0) { FX.shoot("eater", t.upgradePath); t.slurpSoundTimer = 0.3; }
       }
+      continue;
+    }
+    // The Pitmaster locks ONE dish (the Slurper's lock-on machinery) and keeps
+    // basting it: each application lands a smoke-stack (the stacking DOT — dps
+    // rides the stack count). Burnt Ends t2 banks stacks when the smoked dish
+    // DIES (not leaks) and pre-stacks the next lock; Probe Tender t2 finishes a
+    // fully-stacked dish below its HP threshold (an execute — a normal death).
+    if (t.typeId === "pit") {
+      // Burnt Ends: the locked dish left the belt — bank carryover only if it
+      // DIED (a leaked dish sets reachedCore) and was actually smoked.
+      if (t.burntEnds > 0 && t.slurpTargets.length) {
+        const old = t.slurpTargets[0];
+        if (!game.enemies.includes(old) && !old.reachedCore && old.dots && old.dots.some((d) => d.src === "smoke")) {
+          t.carryStacks = t.burntEnds;
+        }
+      }
+      t.slurpTargets = t.slurpTargets.filter((e) => game.enemies.includes(e) && distance(t, e) <= t.range);
+      if (t.slurpTargets.length === 0) {
+        const free = game.enemies.filter((e) => distance(t, e) <= t.range).sort((a, b) => b.dist - a.dist);
+        if (free.length) {
+          t.slurpTargets.push(free[0]);
+          if (t.carryStacks > 0) {   // Burnt Ends: the new lock starts pre-smoked
+            const d = applyDot(free[0], "smoke", { dpsPerStack: t.smokeDps, duration: t.smokeDuration, maxStacks: t.smokeStacks });
+            d.stacks = Math.min(d.maxStacks, t.carryStacks);
+            t.carryStacks = 0;
+            spawnSmokePuff(free[0].x, free[0].y, free[0].radius);
+          }
+        }
+      }
+      if (t.slurpTargets.length === 0) continue;
+      t.slurpShow = 0.12;   // keep the smoke stream drawn between bastes
+      if (t.cdTimer <= 0) {
+        const target = t.slurpTargets[0];
+        const d = applyDot(target, "smoke", { dpsPerStack: t.smokeDps, duration: t.smokeDuration, maxStacks: t.smokeStacks });
+        spawnSmokePuff(target.x, target.y, target.radius);
+        // Probe Tender: fully stacked + tender enough → finished on the spot.
+        if (t.probeThreshold > 0 && d.stacks >= d.maxStacks && target.hp <= target.maxHp * t.probeThreshold) {
+          applyDamage(target, target.hp);
+        }
+        t.cdTimer = t.cooldown;
+        if (t.slurpSoundTimer <= 0) { FX.shoot("pit", t.upgradePath); t.slurpSoundTimer = 0.4; }
+      }
+      continue;
+    }
+    // The Ranch Fountain sprays a CONE toward its priority target, coating every
+    // dish inside it: a stacking slow (per-stack strength, floor-capped) + a
+    // light drizzle DOT. Ranch Keg t2 periodically drenches the cone to max slow.
+    if (t.typeId === "ranch") {
+      if (t.cdTimer > 0) continue;
+      const aimAt = pickTarget(t);
+      if (!aimAt) continue;
+      const aim = Math.atan2(aimAt.y - t.y, aimAt.x - t.x);
+      const half = (t.coneHalfDeg * Math.PI) / 180;
+      const keg = t.kegPeriod > 0 && t.kegTimer <= 0;
+      let coated = 0;
+      for (const e of [...game.enemies]) {
+        if (!inCone(t, aim, half, t.range, e)) continue;
+        applyDot(e, "ranch", {
+          dps: t.ranchDps, dpsPerStack: t.dpsPerStack, duration: t.ranchDuration,
+          maxStacks: t.ranchStacks, slowPerStack: t.slowPerStack, slowFloor: t.slowFloor,
+        });
+        if (keg) maxDotStacks(e, "ranch");   // the burst drenches to instant max slow
+        coated++;
+      }
+      if (coated > 0) {
+        spawnRanchSpray(t.x, t.y, aim, t.range * 0.7, keg);
+        if (keg) t.kegTimer = t.kegPeriod;
+        t.cdTimer = t.cooldown;
+        if (t.slurpSoundTimer <= 0) { FX.shoot("ranch", t.upgradePath); t.slurpSoundTimer = 0.35; }
+      }
+      continue;
+    }
+    // The Sample Lady offers a toothpick sample: a tiny nibble of damage, a brief
+    // stop while the dish tries it (freezeTimer reuse — plain stun, no camera
+    // brackets), and the AMP mark so EVERY customer hits it harder. Bulk Buy t2
+    // samples up to bulkTargets dishes within bulkRadius of the first.
+    if (t.typeId === "sample") {
+      if (t.cdTimer > 0) continue;
+      const target = pickTarget(t);
+      if (!target) continue;
+      const marks = t.bulkTargets > 1
+        ? game.enemies
+            .filter((e) => e === target || distance(target, e) <= t.bulkRadius)
+            .sort((a, b) => (a === target ? -1 : b === target ? 1 : distance(target, a) - distance(target, b)))
+            .slice(0, t.bulkTargets)
+        : [target];
+      for (const e of marks) {
+        applyDamage(e, t.damage);
+        if (!game.enemies.includes(e)) continue;   // the nibble finished it
+        e.freezeTimer = Math.max(e.freezeTimer, t.stunDur);
+        e.freezePlain = true;   // a polite pause, not the Photographer's snapshot (no brackets)
+        applyAmp(e, t.ampMul, t.ampDur, t.lossLeader);
+        spawnSampleOffer(e.x, e.y, e.radius);
+      }
+      t.lungeTimer = LUNGE_DUR; t.lungeAngle = Math.atan2(target.y - t.y, target.x - t.x);
+      t.cdTimer = t.cooldown;
+      FX.shoot("sample", t.upgradePath);
       continue;
     }
     if (t.cdTimer > 0) continue;
@@ -845,6 +1095,7 @@ function resolveHit(p) {
     applyDamage(p.target, p.damage);
     if (game.enemies.includes(p.target)) {
       p.target.freezeTimer = Math.max(p.target.freezeTimer, p.freezeDur);
+      p.target.freezePlain = false;   // a real snapshot: the viewfinder brackets belong to THIS freeze (not a Sample stun)
       p.target.slowTimer = Math.max(p.target.slowTimer, p.freezeDur + p.slowDur);
       p.target.slowFactor = Math.min(p.target.slowFactor, p.slowFactor);
       spawnFreeze(hx, hy, p.target.radius);
@@ -859,6 +1110,7 @@ function resolveHit(p) {
 }
 
 function applyDamage(enemy, dmg) {
+  if (enemy.ampMul > 1) dmg *= enemy.ampMul;   // vulnerability mark: ALL damage sources hit harder (status layer)
   enemy.hp -= dmg;
   enemy.hurtFlash = 0.08;
   if (enemy.hp <= 0 && !enemy.reachedCore) {
@@ -872,6 +1124,13 @@ function applyDamage(enemy, dmg) {
       game.currency += enemy.bounty;
       game.score += enemy.bounty;
       spawnFloatText(enemy.x, enemy.y - 14, "+$" + enemy.bounty + " tip", COLOR.gold);
+    }
+    // Amp payload (status layer): a dish that dies MARKED pays its mark's bonus
+    // Tips on top of the bounty (the Sample Lady's Loss Leader path sets this).
+    if (enemy.ampBonus > 0) {
+      game.currency += enemy.ampBonus;
+      game.score += enemy.ampBonus;
+      spawnFloatText(enemy.x, enemy.y - 24, "+$" + enemy.ampBonus + " sample", COLOR.essence);
     }
     FX.kill();
   } else {
@@ -969,6 +1228,34 @@ function spawnSear(x, y, r) {
   for (let i = 0; i < 5; i++) {
     const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 70;
     game.particles.push({ type: "spark", x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.4 + Math.random() * 1.6, life: 0.2 + Math.random() * 0.18, maxLife: 0.4, color: i % 2 ? "#ffd27a" : "#ff9a5c" });
+  }
+}
+// A soft hickory-smoke puff where the Pitmaster bastes a dish — gray curl sparks
+// drifting UP (negative vy). Called only from the pit branch, so its RNG never
+// touches the sim (the cook-sear ruling).
+function spawnSmokePuff(x, y, r) {
+  for (let i = 0; i < 3; i++) {
+    const dx = (Math.random() - 0.5) * (r || 10);
+    game.particles.push({ type: "spark", x: x + dx, y: y - (r || 10) * 0.6, vx: (Math.random() - 0.5) * 16, vy: -24 - Math.random() * 22, r: 1.8 + Math.random() * 1.8, life: 0.5 + Math.random() * 0.3, maxLife: 0.8, color: i % 2 ? "#9aa2ad" : "#c3c9d2" });
+  }
+}
+// The Ranch Fountain's cone spray: creamy droplets fanned toward the aim angle
+// (a burst sprays wider + heavier). Ranch-branch-only RNG, same ruling.
+function spawnRanchSpray(x, y, angle, reach, burst) {
+  const n = burst ? 12 : 6, spread = burst ? 0.7 : 0.45;
+  for (let i = 0; i < n; i++) {
+    const a = angle + (Math.random() - 0.5) * spread * 2;
+    const sp = reach * (0.9 + Math.random() * 0.8);
+    game.particles.push({ type: "spark", x, y: y - 6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.6 + Math.random() * 1.8, life: 0.28 + Math.random() * 0.2, maxLife: 0.48, color: i % 3 ? "#f2ead9" : "#ffffff" });
+  }
+}
+// The Sample Lady's offer: a tiny toothpick sparkle over the sampled dish.
+// Sample-branch-only RNG, same ruling.
+function spawnSampleOffer(x, y, r) {
+  spawnRing(x, y, "#ff8fb5", (r || 10) + 8, 0.2);
+  for (let i = 0; i < 3; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 30 + Math.random() * 40;
+    game.particles.push({ type: "spark", x, y: y - (r || 10), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 20, r: 1.3, life: 0.25, maxLife: 0.25, color: "#ffcf4a" });
   }
 }
 // A little kid hand that reaches in from a random side and clenches on a dish

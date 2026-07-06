@@ -772,6 +772,213 @@ function drawCompetitiveEater(ctx, cx, cy, r, color, opts) {
   if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx - r * 1.02, hy - r * 0.62, r * 0.4); }
 }
 
+// The Pitmaster (#pit) — a STATION with a person (the cook precedent): a lone
+// obsessive in a hickory-brown shirt (signature color) + BBQ cap stands behind a
+// LONG offset smoker — wide shallow barrel, firebox, chimney puffing away. The
+// Stall path thickens the chimney smoke; Competition Rub adds a rub shaker.
+function drawPitmaster(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1;
+  const stallTier = opts.path === "theStall" ? (opts.tier || 0) : 0;
+  const rubTier = opts.path === "competitionRub" ? (opts.tier || 0) : 0;
+  const shirt = color, headR = r * 0.44, hy = cy - r * 0.72, shoulderY = cy - r * 0.2;
+  // Torso — hickory shirt, sleeves rolled.
+  ctx.fillStyle = shirt; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.54, shoulderY);
+  ctx.quadraticCurveTo(cx - r * 0.62, cy + r * 0.3, cx - r * 0.5, cy + r * 0.66);
+  ctx.lineTo(cx + r * 0.5, cy + r * 0.66);
+  ctx.quadraticCurveTo(cx + r * 0.62, cy + r * 0.3, cx + r * 0.54, shoulderY);
+  ctx.quadraticCurveTo(cx, shoulderY - r * 0.28, cx - r * 0.54, shoulderY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Side towel (tier-1 marker, the station convention).
+  if (level >= 2) {
+    ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+    roundRect(ctx, cx - r * 0.42, cy + r * 0.2, r * 0.2, r * 0.44, r * 0.05); ctx.fill(); ctx.stroke();
+  }
+  // Neck + head, patient half-lidded focus.
+  ctx.fillStyle = SKIN; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  roundRect(ctx, cx - r * 0.15, hy + headR * 0.5, r * 0.3, r * 0.42, r * 0.1); ctx.fill(); ctx.stroke();
+  for (const ex of [-headR, headR]) fillCircle(ctx, cx + ex, hy + headR * 0.06, headR * 0.2, SKIN);
+  fillCircle(ctx, cx, hy, headR, SKIN, 2);
+  drawFace(ctx, cx, hy, headR, { grin: true, cheeks: true });
+  // BBQ cap (brown crown + brim) — the lone-obsessive read.
+  ctx.fillStyle = "#6e4522"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(cx, hy - headR * 0.3, headR * 0.88, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  roundRect(ctx, cx - headR * 1.18, hy - headR * 0.42, headR * 1.5, headR * 0.28, headR * 0.1); ctx.fill(); ctx.stroke();
+  // Basting mop in the raised hand.
+  const mhx = cx + r * 0.84, mhy = cy - r * 0.4;
+  drawLimb(ctx, cx + r * 0.46, shoulderY + r * 0.14, mhx, mhy, r * 0.22, shirt);
+  fillCircle(ctx, mhx, mhy, r * 0.15, SKIN);
+  ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.5, r * 0.09); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(mhx, mhy); ctx.lineTo(mhx + r * 0.26, mhy - r * 0.5); ctx.stroke();
+  fillCircle(ctx, mhx + r * 0.3, mhy - r * 0.58, r * 0.14, "#f4f7ff", 1.4);   // mop head
+  // ---- The long offset smoker in FRONT (wide, shallow) ----
+  const sY = cy + r * 0.6, sHalf = r * 1.06, sH = r * 0.42;
+  ctx.fillStyle = "#2f333d"; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;   // barrel
+  roundRect(ctx, cx - sHalf, sY, sHalf * 2, sH, r * 0.2); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.14)"; ctx.lineWidth = 1;           // lid seam
+  ctx.beginPath(); ctx.moveTo(cx - sHalf + r * 0.1, sY + sH * 0.42); ctx.lineTo(cx + sHalf - r * 0.1, sY + sH * 0.42); ctx.stroke();
+  // Lid handle + firebox on the right end.
+  ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.4, r * 0.09);
+  ctx.beginPath(); ctx.moveTo(cx - r * 0.3, sY + sH * 0.2); ctx.lineTo(cx + r * 0.3, sY + sH * 0.2); ctx.stroke();
+  ctx.fillStyle = "#3c2f26"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.6;
+  roundRect(ctx, cx + sHalf - r * 0.16, sY + sH * 0.3, r * 0.42, sH * 0.72, r * 0.08); ctx.fill(); ctx.stroke();
+  fillCircle(ctx, cx + sHalf + r * 0.05, sY + sH * 0.66, r * 0.07, "#ff9a5c", 1);   // ember glow
+  // Chimney on the left end + smoke curls (thicker on The Stall).
+  ctx.fillStyle = "#2f333d"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.6;
+  roundRect(ctx, cx - sHalf - r * 0.06, sY - r * 0.46, r * 0.22, r * 0.5, r * 0.05); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#9aa2ad"; ctx.lineWidth = Math.max(1.3, r * 0.09); ctx.lineCap = "round"; ctx.globalAlpha = 0.8;
+  const puffs = 1 + Math.min(2, stallTier);
+  for (let i = 0; i < puffs; i++) {
+    const px = cx - sHalf + r * 0.05, py = sY - r * (0.56 + i * 0.26);
+    ctx.beginPath(); ctx.moveTo(px - r * 0.08, py + r * 0.08);
+    ctx.quadraticCurveTo(px + r * 0.14, py, px - r * 0.04, py - r * 0.1); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // Competition Rub: a spice shaker sitting on the lid.
+  if (rubTier >= 1) {
+    ctx.fillStyle = "#ffcf4a"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.3;
+    roundRect(ctx, cx + r * 0.42, sY - r * 0.24, r * 0.2, r * 0.26, r * 0.05); ctx.fill(); ctx.stroke();
+  }
+  // Station legs.
+  ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.6, r * 0.12);
+  for (const lx of [-sHalf * 0.78, sHalf * 0.78]) { ctx.beginPath(); ctx.moveTo(cx + lx, sY + sH); ctx.lineTo(cx + lx, sY + sH + r * 0.34); ctx.stroke(); }
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx - r * 1.0, hy - r * 0.5, r * 0.4); }
+}
+
+// The Ranch Fountain (#ranch) — a TALL prop with a tiny person: a three-tier
+// fountain cascading buttermilk ranch (signature cream), tended by a small
+// superfan. Small footprint, tall silhouette. Extra Dressing thickens the
+// cascade; Wider Nozzle t2 mounts the keg on top.
+function drawRanchFountain(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1;
+  const dressTier = opts.path === "extraDressing" ? (opts.tier || 0) : 0;
+  const nozzleTier = opts.path === "widerNozzle" ? (opts.tier || 0) : 0;
+  const cream = color, basin = "#c9d2de", fx = cx - r * 0.2;   // fountain sits left-of-center; the fan stands right
+  // Basin (bottom) + two upper tiers, narrowing.
+  ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  const tiers = [
+    { y: cy + r * 0.66, w: r * 1.0, h: r * 0.3 },
+    { y: cy + r * 0.06, w: r * 0.62, h: r * 0.24 },
+    { y: cy - r * 0.5, w: r * 0.38, h: r * 0.2 },
+  ];
+  for (const tr of tiers) {
+    ctx.fillStyle = basin;
+    ctx.beginPath(); ctx.ellipse(fx, tr.y, tr.w, tr.h, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = cream;   // pooled ranch on each tier
+    ctx.beginPath(); ctx.ellipse(fx, tr.y - tr.h * 0.28, tr.w * 0.82, tr.h * 0.62, 0, 0, 7); ctx.fill(); ctx.stroke();
+  }
+  // Pedestal columns between tiers + the cascade (thicker on Extra Dressing).
+  ctx.fillStyle = basin;
+  roundRect(ctx, fx - r * 0.09, cy - r * 0.5, r * 0.18, r * 0.5, r * 0.05); ctx.fill(); ctx.stroke();
+  roundRect(ctx, fx - r * 0.11, cy + r * 0.1, r * 0.22, r * 0.5, r * 0.05); ctx.fill(); ctx.stroke();
+  const flow = Math.max(1.6, r * (0.1 + dressTier * 0.05));
+  ctx.strokeStyle = cream; ctx.lineWidth = flow; ctx.lineCap = "round";
+  for (const [x0, y0, y1] of [[fx - r * 0.3, cy - r * 0.44, cy + r * 0.0], [fx + r * 0.3, cy - r * 0.44, cy + r * 0.0], [fx - r * 0.5, cy + r * 0.14, cy + r * 0.6], [fx + r * 0.5, cy + r * 0.14, cy + r * 0.6]]) {
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(x0 * 1.01, (y0 + y1) / 2, x0, y1); ctx.stroke();
+  }
+  ctx.strokeStyle = MDARK;
+  // Top spout: a nozzle jet — or the KEG at Wider Nozzle t2.
+  if (nozzleTier >= 2) {
+    ctx.fillStyle = "#8f99ab"; ctx.lineWidth = 1.8;
+    roundRect(ctx, fx - r * 0.24, cy - r * 1.04, r * 0.48, r * 0.4, r * 0.1); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 1;   // keg hoops
+    ctx.beginPath(); ctx.moveTo(fx - r * 0.24, cy - r * 0.94); ctx.lineTo(fx + r * 0.24, cy - r * 0.94); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(fx - r * 0.24, cy - r * 0.74); ctx.lineTo(fx + r * 0.24, cy - r * 0.74); ctx.stroke();
+  } else {
+    ctx.fillStyle = cream; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(fx, cy - r * 0.78, r * (0.1 + nozzleTier * 0.05), r * 0.16, 0, 0, 7); ctx.fill(); ctx.stroke();
+  }
+  // The superfan: a small figure at the basin's right, arms up in awe — cream
+  // tee ties them to the signature color.
+  const fnx = cx + r * 0.66, fny = cy + r * 0.42, fheadR = r * 0.22;
+  drawLimb(ctx, fnx - r * 0.14, fny + r * 0.1, fnx - r * 0.34, fny - r * 0.16, r * 0.14, cream);
+  drawLimb(ctx, fnx + r * 0.14, fny + r * 0.1, fnx + r * 0.34, fny - r * 0.16, r * 0.14, cream);
+  ctx.fillStyle = cream; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.8;
+  roundRect(ctx, fnx - r * 0.2, fny, r * 0.4, r * 0.5, r * 0.12); ctx.fill(); ctx.stroke();
+  fillCircle(ctx, fnx, fny - fheadR * 0.6, fheadR, SKIN, 1.8);
+  drawFace(ctx, fnx, fny - fheadR * 0.6, fheadR, { grin: true, cheeks: true });
+  // Napkin bib on the superfan (tier-1 marker).
+  if (level >= 2) {
+    ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(fnx - r * 0.14, fny + r * 0.06); ctx.lineTo(fnx + r * 0.14, fny + r * 0.06); ctx.lineTo(fnx, fny + r * 0.26); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, fx + r * 0.5, cy - r * 0.94, r * 0.4); }
+}
+
+// The Sample Lady (#sample) — a DEMO CART with a person: hairnet + pink vest
+// (signature color), one toothpick sample held out, a tray of flagged samples
+// on the cart. Costco Saturday stacks a second tray; Hard Sell raises a bigger
+// flag on the offered toothpick.
+function drawSampleLady(ctx, cx, cy, r, color, opts) {
+  const level = opts.level || 1;
+  const costcoTier = opts.path === "costcoSaturday" ? (opts.tier || 0) : 0;
+  const sellTier = opts.path === "hardSell" ? (opts.tier || 0) : 0;
+  const vest = color, blouse = "#f4f7fb", headR = r * 0.44, hy = cy - r * 0.7, shoulderY = cy - r * 0.18;
+  // Torso: white blouse under the pink demo vest.
+  ctx.fillStyle = blouse; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.52, shoulderY);
+  ctx.quadraticCurveTo(cx - r * 0.6, cy + r * 0.3, cx - r * 0.48, cy + r * 0.64);
+  ctx.lineTo(cx + r * 0.48, cy + r * 0.64);
+  ctx.quadraticCurveTo(cx + r * 0.6, cy + r * 0.3, cx + r * 0.52, shoulderY);
+  ctx.quadraticCurveTo(cx, shoulderY - r * 0.26, cx - r * 0.52, shoulderY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = vest; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.6;   // vest panels
+  roundRect(ctx, cx - r * 0.44, shoulderY + r * 0.02, r * 0.3, r * 0.72, r * 0.08); ctx.fill(); ctx.stroke();
+  roundRect(ctx, cx + r * 0.14, shoulderY + r * 0.02, r * 0.3, r * 0.72, r * 0.08); ctx.fill(); ctx.stroke();
+  // Side towel (tier-1 marker, station convention).
+  if (level >= 2) {
+    ctx.fillStyle = "#f4f7ff"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+    roundRect(ctx, cx - r * 0.1, cy + r * 0.3, r * 0.2, r * 0.36, r * 0.05); ctx.fill(); ctx.stroke();
+  }
+  // Neck + head with a hairnet bun + welcoming grin.
+  ctx.fillStyle = SKIN; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  roundRect(ctx, cx - r * 0.15, hy + headR * 0.5, r * 0.3, r * 0.42, r * 0.1); ctx.fill(); ctx.stroke();
+  for (const ex of [-headR, headR]) fillCircle(ctx, cx + ex, hy + headR * 0.06, headR * 0.2, SKIN);
+  fillCircle(ctx, cx, hy, headR, SKIN, 2);
+  drawFace(ctx, cx, hy, headR, { grin: true, cheeks: true });
+  ctx.fillStyle = "#8b8f98"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.6;   // hairnet dome + bun
+  ctx.beginPath(); ctx.arc(cx, hy - headR * 0.28, headR * 0.86, Math.PI * 1.02, -Math.PI * 0.02); ctx.closePath(); ctx.fill(); ctx.stroke();
+  fillCircle(ctx, cx, hy - headR * 1.06, headR * 0.3, "#8b8f98", 1.4);
+  ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 0.8;   // net cross-hatch
+  for (const dx of [-headR * 0.5, 0, headR * 0.5]) { ctx.beginPath(); ctx.moveTo(cx + dx, hy - headR * 0.9); ctx.lineTo(cx + dx * 0.6, hy - headR * 0.3); ctx.stroke(); }
+  // The offered toothpick — held out front, flag bigger on Hard Sell.
+  const ohx = cx + r * 0.78, ohy = cy - r * 0.32;
+  drawLimb(ctx, cx + r * 0.44, shoulderY + r * 0.12, ohx, ohy, r * 0.2, blouse);
+  fillCircle(ctx, ohx, ohy, r * 0.14, SKIN);
+  ctx.strokeStyle = MDARK; ctx.lineWidth = Math.max(1.2, r * 0.07); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(ohx, ohy); ctx.lineTo(ohx + r * 0.12, ohy - r * 0.42); ctx.stroke();
+  fillCircle(ctx, ohx + r * 0.1, ohy - r * 0.34, r * 0.09, "#c98a45", 1.2);   // the sample cube
+  const flagW = r * (0.24 + sellTier * 0.1);
+  ctx.fillStyle = "#ffcf4a"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ohx + r * 0.12, ohy - r * 0.42); ctx.lineTo(ohx + r * 0.12 + flagW, ohy - r * 0.36); ctx.lineTo(ohx + r * 0.12, ohy - r * 0.28); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // ---- The demo cart in FRONT ----
+  const cartY = cy + r * 0.58, cartHalf = r * 0.86, cartH = r * 0.34;
+  ctx.fillStyle = "#e7ecf5"; ctx.strokeStyle = MDARK; ctx.lineWidth = 2;
+  roundRect(ctx, cx - cartHalf, cartY, cartHalf * 2, cartH, r * 0.08); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = vest;   // vest-pink skirt band on the cart
+  roundRect(ctx, cx - cartHalf, cartY + cartH * 0.55, cartHalf * 2, cartH * 0.45, r * 0.06); ctx.fill(); ctx.stroke();
+  // Sample tray(s) on the cart: little cubes + toothpick flags (a second stack on Costco Saturday).
+  const trays = 1 + Math.min(1, costcoTier);
+  for (let tIdx = 0; tIdx < trays; tIdx++) {
+    const txc = cx - r * 0.34 + tIdx * r * 0.62, tyc = cartY - r * 0.08 - tIdx * r * 0.04;
+    ctx.fillStyle = "#c9d2de"; ctx.strokeStyle = MDARK; ctx.lineWidth = 1.3;
+    roundRect(ctx, txc - r * 0.26, tyc, r * 0.52, r * 0.12, r * 0.03); ctx.fill(); ctx.stroke();
+    for (let i = 0; i < 3; i++) {
+      const sxp = txc - r * 0.16 + i * r * 0.16;
+      fillCircle(ctx, sxp, tyc - r * 0.02, r * 0.05, "#c98a45", 1);
+      ctx.strokeStyle = MDARK; ctx.lineWidth = 0.9;
+      ctx.beginPath(); ctx.moveTo(sxp, tyc - r * 0.05); ctx.lineTo(sxp, tyc - r * 0.2); ctx.stroke();
+      ctx.fillStyle = "#ffcf4a";
+      ctx.beginPath(); ctx.moveTo(sxp, tyc - r * 0.2); ctx.lineTo(sxp + r * 0.09, tyc - r * 0.17); ctx.lineTo(sxp, tyc - r * 0.14); ctx.closePath(); ctx.fill();
+    }
+  }
+  // Cart wheels.
+  for (const wx of [-cartHalf * 0.7, cartHalf * 0.7]) fillCircle(ctx, cx + wx, cartY + cartH + r * 0.1, r * 0.11, "#3a4150", 1.6);
+  if (level >= 3) { ctx.fillStyle = "#fff2b0"; drawSpark4(ctx, cx - r * 1.0, hy - r * 0.5, r * 0.4); }
+}
+
 // Dispatch to a per-character mascot. Every tower id is a full mascot now.
 function drawCustomer(ctx, typeId, cx, cy, r, color, opts = {}) {
   ctx.save();
@@ -782,6 +989,9 @@ function drawCustomer(ctx, typeId, cx, cy, r, color, opts = {}) {
   else if (typeId === "zap") drawKidsTable(ctx, cx, cy, r, color, opts);
   else if (typeId === "cook") drawShortOrderCook(ctx, cx, cy, r, color, opts);
   else if (typeId === "eater") drawCompetitiveEater(ctx, cx, cy, r, color, opts);
+  else if (typeId === "pit") drawPitmaster(ctx, cx, cy, r, color, opts);
+  else if (typeId === "ranch") drawRanchFountain(ctx, cx, cy, r, color, opts);
+  else if (typeId === "sample") drawSampleLady(ctx, cx, cy, r, color, opts);
   else drawRegular(ctx, cx, cy, r, color, opts);   // arrow (default)
   ctx.restore();
 }
@@ -1124,6 +1334,58 @@ function drawLockIcon(ctx, x, y, s, color) {
 function drawSoftShadow(ctx, x, y, rx, ry, color) {
   ctx.save(); ctx.fillStyle = color;
   ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fill(); ctx.restore();
+}
+
+// Subtle on-belt cues for the enemy STATUS layer (Roster Growth 2) — the same
+// "state language" tier as the slow ring / freeze brackets. Deterministic
+// (elapsed-driven wobble, no RNG) and drawn over the food so a glance answers
+// "what's on that dish":
+//   smoke dot → little gray curls rising off it (more stacks = more curls);
+//   ranch dot → a creamy coating arc + drips sliding down (NOT the cyan slow
+//               ring — that stays the Photographer's after-slow);
+//   amp mark  → a gold toothpick sample-flag planted on top.
+function drawStatusCues(ctx, e, elapsed) {
+  const r = e.radius || 10;
+  ctx.save();
+  for (const d of e.dots || []) {
+    if (d.src === "smoke") {
+      const curls = Math.min(3, Math.ceil(d.stacks / 2) + (d.stacks >= d.maxStacks ? 1 : 0));
+      ctx.strokeStyle = "#9aa2ad"; ctx.lineWidth = 1.6; ctx.lineCap = "round"; ctx.globalAlpha = 0.75;
+      for (let i = 0; i < curls; i++) {
+        const ph = elapsed * 2.2 + i * 2.1;
+        const cx = e.x + (i - (curls - 1) / 2) * (r * 0.7);
+        const cy = e.y - r - 3 - ((ph * 6) % 8);
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, cy + 3);
+        ctx.quadraticCurveTo(cx + 3, cy + 1, cx - 1, cy - 2);
+        ctx.quadraticCurveTo(cx - 4, cy - 4, cx + 1, cy - 6);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    } else if (d.src === "ranch") {
+      ctx.strokeStyle = "#f2ead9"; ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.arc(e.x, e.y, r + 1, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      const drips = Math.min(3, d.stacks);
+      ctx.fillStyle = "#f2ead9";
+      for (let i = 0; i < drips; i++) {
+        const a = Math.PI * (1.25 + i * 0.25);
+        const dx = e.x + Math.cos(a) * (r + 1), dy = e.y + Math.sin(a) * (r + 1);
+        const slide = 2 + ((elapsed * 3 + i) % 2);
+        ctx.beginPath(); ctx.ellipse(dx, dy + slide, 1.4, 2.4, 0, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  if (e.ampMul > 1) {
+    // The sample flag: a toothpick with a little gold pennant, planted on top.
+    const fx = e.x + r * 0.35, fy = e.y - r - 2;
+    ctx.strokeStyle = MDARK; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 7); ctx.stroke();
+    ctx.fillStyle = "#ffcf4a"; ctx.strokeStyle = MDARK; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(fx, fy - 7); ctx.lineTo(fx + 6, fy - 5.5); ctx.lineTo(fx, fy - 4); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function roundRect(ctx, x, y, w, h, r) {
