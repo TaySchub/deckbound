@@ -136,6 +136,7 @@ function render() {
   drawProjectiles(ctx);
   drawSlurpStraws(ctx);
   drawEaterBites(ctx);
+  drawSmokeStreams(ctx);
   drawTowers(ctx);
   drawParticles(ctx);
   drawPlacementGhost(ctx);
@@ -589,7 +590,9 @@ function drawEnemies(ctx) {
     if ((e.dots && e.dots.length) || e.ampMul > 1) drawStatusCues(ctx, e, game.elapsed);
     // Posing for the photo: a slight overexposed tint + camera-viewfinder corner
     // brackets framing the held-still dish (no ice — it's a snapshot, not a freeze).
-    if (e.freezeTimer > 0) {
+    // A PLAIN stun (the Sample Lady's freezePlain) pauses the dish with no
+    // brackets/tint — the snapshot language stays the Photographer's alone.
+    if (e.freezeTimer > 0 && !e.freezePlain) {
       ctx.save();
       ctx.globalAlpha = 0.22; ctx.fillStyle = "#ffffff";
       ctx.beginPath(); ctx.arc(e.x, e.y, e.radius + 2, 0, Math.PI * 2); ctx.fill();
@@ -677,6 +680,26 @@ function drawEaterBites(ctx) {
       ctx.fillStyle = "rgba(11,14,20,0.72)"; roundRect(ctx, t.x - w / 2, ty - 8, w, 16, 8); ctx.fill();
       ctx.fillStyle = t.combo >= t.comboCap ? "#ffcf4a" : "#8cc152"; ctx.fillText(label, t.x, ty);
       ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    }
+  }
+}
+
+// The Pitmaster's on-belt read: a wavering smoke stream from the smoker to its
+// locked dish (the slurp-straw pattern — same lock fields, smokier line).
+function drawSmokeStreams(ctx) {
+  for (const t of game.towers) {
+    if (t.typeId !== "pit" || !(t.slurpShow > 0)) continue;
+    for (const tgt of (t.slurpTargets || [])) {
+      if (!game.enemies.includes(tgt)) continue;
+      const x0 = t.x, y0 = t.y - 10, x1 = tgt.x, y1 = tgt.y;
+      const mx = (x0 + x1) / 2 + Math.sin(game.elapsed * 3.1) * 9;
+      const my = (y0 + y1) / 2 - 14 + Math.cos(game.elapsed * 2.3) * 5;
+      ctx.save(); ctx.lineCap = "round";
+      ctx.strokeStyle = "#9aa2ad"; ctx.globalAlpha = 0.55; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, x1, y1); ctx.stroke();
+      ctx.strokeStyle = "#c3c9d2"; ctx.globalAlpha = 0.4; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my - 3, x1, y1); ctx.stroke();
+      ctx.restore();
     }
   }
 }

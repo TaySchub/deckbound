@@ -47,6 +47,9 @@ cheap smooth canvas vectors.
    | The Kids' Table | `zap` | `#ffe08a` yellow | a huddle of three party-hat kids, arms up |
    | The Short-Order Cook | `cook` | `#e8574e` griddle red | white toque + **red apron**, stands behind a flat-top griddle, flipping with a spatula (a station, not a seated diner) |
    | The Competitive Eater | `eater` | `#8cc152` contest green | lean, seated at a contest table with a **water cup + stack of cleared plates**, open mouth mid-bite |
+   | The Pitmaster | `pit` | `#a06a3a` hickory brown | BBQ cap + basting mop behind a **long offset smoker** (chimney puffing; wide shallow station) |
+   | The Ranch Fountain | `ranch` | `#f2e8cf` buttermilk cream | a **three-tier fountain cascading ranch** with a tiny awed superfan beside it (tall prop, small footprint) |
+   | The Sample Lady | `sample` | `#ff8fb5` sample-cart pink | hairnet + pink vest behind a **demo cart of toothpick-flagged samples**, one held out |
 
    | Food | id | Color / edge | radius | Identity feature |
    |---|---|---|---|---|
@@ -220,3 +223,16 @@ Render `tools/dev/harness.html?mode=sheet` and check:
   house convention — a napkin/side-towel at tier 1, a `drawSpark4` chef's-kiss at
   tier 2. The rail became **scrollable** here (the roster outgrew its 5 slots); the
   scroll is chrome, not art (structure only).
+- **2026-07-06** (Roster Growth 2) — **Status effects get their own state
+  language, one cue per source kind:** smoke = little gray curls rising off the
+  dish; ranch coating = a creamy arc + drips (deliberately NOT the cyan slow
+  ring — that stays the Photographer's after-slow); the amp mark = a gold
+  toothpick sample-flag planted on top. A **plain stun** (the Sample Lady's) is
+  a pause with NO overexposure/brackets — the snapshot language remains the
+  Photographer's identity (`freezePlain` flag). Three new signature colors:
+  **hickory brown `#a06a3a`** (pit), **buttermilk cream `#f2e8cf`** (ranch —
+  flagged: it sits near the Blue-Plate floor cream, but cards live on the dark
+  rail and the fountain reads by silhouette), **sample-cart pink `#ff8fb5`**
+  (sample). Silhouette diversification continues per the RG1 ruling: a wide
+  shallow station (smoker), a TALL prop-with-tiny-person (fountain), and a cart
+  station; each keeps ONE identity feature and the shared face/limb helpers.

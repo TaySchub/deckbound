@@ -92,9 +92,16 @@ const TOWER_ART = {
   // of the five above — cook a griddle red, eater a contest green.
   cook:   { color: "#e8574e", glow: "#a83228" },
   eater:  { color: "#8cc152", glow: "#4e7a24" },
+  // Roster Growth 2 (status towers): three more, still clear of everything
+  // above — pit a hickory-smoke brown, ranch a buttermilk cream (flagged in the
+  // PR: it sits near the Blue-Plate floor cream, but cards live on the dark
+  // rail where it reads), sample a toothpick-flag pink.
+  pit:    { color: "#a06a3a", glow: "#6e4522" },
+  ranch:  { color: "#f2e8cf", glow: "#b3a06a" },
+  sample: { color: "#ff8fb5", glow: "#b5486e" },
 };
 // Fixed display order for the deck/toolbar.
-const TOWER_ORDER = ["arrow", "cannon", "frost", "sniper", "zap", "cook", "eater"];
+const TOWER_ORDER = ["arrow", "cannon", "frost", "sniper", "zap", "cook", "eater", "pit", "ranch", "sample"];
 const TOWER_TYPES = TOWER_ORDER.map((id) => ({ id, ...BAL.towers[id], ...TOWER_ART[id] }));
 const TOWER_BY_ID = Object.fromEntries(TOWER_TYPES.map((t) => [t.id, t]));
 

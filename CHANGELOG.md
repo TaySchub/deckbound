@@ -6,6 +6,47 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **Roster Growth 2 — three status towers: the Pitmaster, the Ranch Fountain,
+  and the Sample Lady** (stage 2; Implementer + Designer + Art hats). All three
+  ride the stage-1 status layer, ship INSTANTLY available (the unlocked-set
+  union migration hands them to veteran saves), and sit beside the gate — the
+  reference build is untouched, so the difficulty gauge and both smokes stay
+  byte-identical to main.
+  - **The Pitmaster** (`pit`, mid band 300): a lone obsessive behind a long
+    offset smoker. Locks one dish (the Slurper's lock machinery) and bastes it
+    with stacking low-and-slow smoke — dps rides the stack count. *The Stall*
+    (250/550): faster stacking → **Burnt Ends** (a killed dish's smoke carries
+    over: the next lock starts pre-stacked; a LEAKED dish carries nothing).
+    *Competition Rub* (250/550): +2 stack cap → **Probe Tender** (a
+    fully-stacked dish at ≤15% HP is finished on the spot — a one-line execute
+    through the normal death path, bounty paid).
+  - **The Ranch Fountain** (`ranch`, mid band 300): a tall fountain cascading
+    ranch, tended by a superfan. Sprays a **CONE** (new targeting shape; the
+    math lives in one `inCone` helper) coating every dish in it: stacking slow
+    (per-stack strength, floor-capped) + a light drizzle DOT. *Extra Dressing*
+    (250/550): deeper slow per coat → **Ranch on Everything** (the drizzle
+    ramps with the coats). *Wider Nozzle* (250/600): wider/longer cone →
+    **Ranch Keg** (every 5s the spray drenches the whole cone to instant max
+    slow).
+  - **The Sample Lady** (`sample`, cheap band 150): a demo cart with toothpick
+    trays. Offers a sample: a tiny nibble, a brief **plain stun** (freezeTimer
+    reuse — deliberately no Photographer brackets; a `freezePlain` flag keeps
+    the snapshot language hers alone), and the **AMP mark** so every customer
+    hits that dish harder — the roster's first true force-multiplier. *Costco
+    Saturday* (150/250): faster sampling → **Loss Leader** (marked dishes pay
+    +10 Tips on death). *Hard Sell* (150/300): stronger mark → **Bulk Buy**
+    (marks up to 3 dishes in a small radius).
+  - Pricing follows the #87 rubric (cheap 150 / mid 300; t1 ≈ one midgame
+    wave's income; crowd-multiplier signature t2s +50 over siblings). Art in
+    house style — two stations-with-people and a tall prop-with-person, three
+    new signature colors (hickory `#a06a3a`, buttermilk `#f2e8cf`, sample-cart
+    pink `#ff8fb5`). Report-only probes: solo 10x boards die at median waves
+    17/6/5 (supports don't carry — by design); adding one Sample Lady to
+    arrow+cannon lifts median 20→21 and P(reach 20) 96.5%→100% (the amp made
+    visible). Tests: `pitmaster.test.mjs`, `ranch.test.mjs`, `sample.test.mjs`.
+    Verified: gate + both smokes byte-identical to main at BOTH stage
+    boundaries (blueplate 57.0%; smoke 22/3575 stat, 22/3265 signature); all
+    tests + maplint green.
 - **The enemy STATUS layer** (Roster Growth 2, stage 1; Implementer hat) — the
   generic gateway the researched status towers ride, shipped PROVABLY INERT
   (no tower applies a status yet). Two effects, scoped to exactly what stage 2
