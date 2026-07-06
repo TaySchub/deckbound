@@ -6,6 +6,19 @@ Format is deliberately simple and plain-language.
 ## [Unreleased]
 
 ### Added
+- **Balance philosophy + roster probe visibility** (Issue #92, stage 1;
+  Designer + Researcher hats). New `docs/BALANCE_PHILOSOPHY.md` — the tuning
+  north star: a researched income-model comparison (BTD6's dual stream,
+  Kingdom Rush's leak-pay, Defense Grid's interest cautionary, Dungeon
+  Warfare's copy-pricing) and what Deckbound adopts against its own
+  constraints; a ROLE MAP giving each of the 10 towers a named role, a cost
+  band, and ONE measurable best-at claim with its probe; and pricing/bounty
+  rubric v2 (supersedes #87's). CLAUDE.md's doc map points at it.
+  `tools/sim.mjs --check` now also prints three data-defined REPORT-ONLY
+  roster boards (`modern-mix`, `support-stack`, `dot-board`) after the gate
+  blocks — newcomer compositions visible in every CI log, zero effect on the
+  gate or exit code (gate output verified byte-identical, 57.0% blueplate /
+  34.5% retired diner).
 - **Roster Growth 2 — three status towers: the Pitmaster, the Ranch Fountain,
   and the Sample Lady** (stage 2; Implementer + Designer + Art hats). All three
   ride the stage-1 status layer, ship INSTANTLY available (the unlocked-set
