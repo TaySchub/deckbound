@@ -29,3 +29,9 @@ is GitHub Issues (next up: the tower-upgrades rework, pinned there).
 Plain HTML5 + CSS + JavaScript, hosted on GitHub Pages, playable in a browser
 on Mac and iPhone. We may add [Phaser 3](https://phaser.io/) later if the
 real-time action needs it. Original assets only — no branded content.
+
+---
+
+## 🤝 Contributing
+
+Issues and PRs welcome! See [issue #98](https://github.com/TaySchub/blueplate/issues/98) for current tasks.
