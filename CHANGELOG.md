@@ -5,6 +5,26 @@ Format is deliberately simple and plain-language.
 
 ## [Unreleased]
 
+### Added
+- **Menu Expansion — three new dishes** (Issue #98, stage 1; data + art, no new
+  engine mechanics — enemies stay fully data-driven). The belt roster doubles
+  from four dishes to seven so waves stay fresh through the endless climb, each a
+  stat-and-art variant filling an archetype the original four didn't cover:
+  - **Sunny-Side Up** (`egg`) — the glass-cannon SPRINTER: the fastest, frailest
+    dish in the game (speed 2.3, HP 0.4, r8). A glossy fried egg with a domed
+    yolk and speed lines; it slips past slow guns and forces leak-saves.
+  - **Short Stack** (`stack`) — the mid-tank BRUISER: chunky HP at an awkward
+    middling pace (HP 1.6, speed 0.9, r14) that syncs with neither the sprinters
+    nor the slow steaks. A buttered, syrup-drizzled stack of pancakes.
+  - **The Roast Turkey** (`roast`) — the premium PLATE: rare, high-HP, pays a fat
+    tip (HP 3.25, speed 0.6, bounty 50, r19). A glazed bird with two frilled
+    drumsticks — the dish you decide whether to swing the board around and kill.
+  They unlock at waves 7 / 9 / 13 so the early ramp stays learnable. Each is
+  drawn in `src/art.js` with the shared bite-state + hurt-flash idiom, a distinct
+  faceless silhouette, and TRUE belt size that still reads HP (roast > brute >
+  stack > mote > runner > egg > swarm). The contact sheet's FOODS row grows to
+  all seven.
+
 ### Changed
 - **Tower Rework stage 3 — the closing rebalance** (Issue #103; balance.json
   numbers only, diff-provable). Thirteen leaves tuned so every reworked kit
