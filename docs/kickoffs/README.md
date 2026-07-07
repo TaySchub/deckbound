@@ -32,6 +32,12 @@ Exactly ONE PR — build, open, post the link on this issue, stop.
 
 HARD PREREQUISITE (verify before any edit): {PREREQ — e.g. "PR #N merged;
 confirm <observable fact in the repo>"}. If not true, STOP and comment here.
+
+CONTENT GUARDRAIL (any kickoff that adds player-facing content — towers,
+dishes, maps, names, copy): general-audience cartoon tone, ORIGINAL
+ARCHETYPES ONLY — never brands, chains, celebrities, or trademarks. Research
+sources inspire behaviors; they never enter the game. (GAME_BRIEF law;
+carried verbatim by every content kickoff #88→#98.)
 ```
 
 ## STANDARD CLOSE (splice into every kickoff)
