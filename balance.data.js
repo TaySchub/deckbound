@@ -465,13 +465,15 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 300,
-              "cooldownMul": 0.83
+              "cooldownMul": 0.83,
+              "desc": "Jabs the fork faster between stabs"
             },
             {
               "cost": 500,
               "pierce": true,
               "damage": 20,
-              "range": 14
+              "range": 14,
+              "desc": "Forks fly straight and skewer 2 dishes"
             }
           ]
         },
@@ -481,12 +483,14 @@ window.BALANCE = {
             {
               "cost": 250,
               "damage": 28,
-              "range": 14
+              "range": 14,
+              "desc": "A bigger carving fork \u2014 more damage and reach"
             },
             {
               "cost": 450,
               "damage": 28,
-              "range": 14
+              "range": 14,
+              "desc": "A heavier serving fork \u2014 even more damage"
             }
           ]
         }
@@ -506,13 +510,15 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 300,
-              "cooldownMul": 0.72
+              "cooldownMul": 0.72,
+              "desc": "Chews faster between big bites"
             },
             {
               "cost": 700,
               "cooldownMul": 0.7,
               "crumbRadius": 44,
-              "crumbDamage": 48
+              "crumbDamage": 48,
+              "desc": "Messy bites splash crumbs onto nearby dishes"
             }
           ]
         },
@@ -522,14 +528,16 @@ window.BALANCE = {
             {
               "cost": 300,
               "damage": 62,
-              "range": 8
+              "range": 8,
+              "desc": "A huge bite \u2014 far more damage per chomp"
             },
             {
               "cost": 600,
               "damage": 62,
               "range": 8,
               "knockbackBase": 100,
-              "knockbackSizeRef": 12
+              "knockbackSizeRef": 12,
+              "desc": "Spits the dish back down the belt \u2014 light foods fly far"
             }
           ]
         }
@@ -554,7 +562,8 @@ window.BALANCE = {
               "cost": 250,
               "freezeDurAdd": 0.29,
               "damage": 3,
-              "range": 12
+              "range": 12,
+              "desc": "Holds the freeze pose longer"
             },
             {
               "cost": 500,
@@ -562,7 +571,8 @@ window.BALANCE = {
               "damage": 3,
               "range": 12,
               "slowDurAdd": 1.0,
-              "slowFactorAdd": -0.05
+              "slowFactorAdd": -0.05,
+              "desc": "Longer freeze, then a longer, stronger slow"
             }
           ]
         },
@@ -571,12 +581,14 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 300,
-              "range": 20
+              "range": 20,
+              "desc": "A longer lens \u2014 more reach"
             },
             {
               "cost": 600,
               "range": 10,
-              "freezeTargets": 2
+              "freezeTargets": 2,
+              "desc": "One flash freezes two dishes at once"
             }
           ]
         }
@@ -597,12 +609,14 @@ window.BALANCE = {
             {
               "cost": 300,
               "damage": 5,
-              "range": 8
+              "range": 8,
+              "desc": "Bigger sips \u2014 more damage each slurp"
             },
             {
               "cost": 550,
               "damage": 4,
-              "range": 8
+              "range": 8,
+              "desc": "An even thicker shake \u2014 more damage"
             }
           ]
         },
@@ -611,12 +625,14 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 300,
-              "range": 5
+              "range": 5,
+              "desc": "A longer bendy straw \u2014 a bit more reach"
             },
             {
               "cost": 550,
               "drainTargets": 2,
-              "damage": 2
+              "damage": 2,
+              "desc": "A second straw drains two dishes at once"
             }
           ]
         }
@@ -637,13 +653,15 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 150,
-              "cooldownMul": 0.78
+              "cooldownMul": 0.78,
+              "desc": "The kids grab faster"
             },
             {
               "cost": 300,
               "cooldownMul": 0.85,
               "maxTargetsAdd": 1,
-              "damage": 4
+              "damage": 4,
+              "desc": "A 4th kid joins \u2014 grabs one more dish at once"
             }
           ]
         },
@@ -653,12 +671,14 @@ window.BALANCE = {
             {
               "cost": 150,
               "damage": 8,
-              "range": 8
+              "range": 8,
+              "desc": "Bigger kids \u2014 harder grabs and more reach"
             },
             {
               "cost": 200,
               "damage": 8,
-              "range": 8
+              "range": 8,
+              "desc": "Now teenagers \u2014 even harder grabs and reach"
             }
           ]
         }
@@ -679,12 +699,14 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 250,
-              "cooldownMul": 0.8
+              "cooldownMul": 0.8,
+              "desc": "Faster flips between sears"
             },
             {
               "cost": 550,
               "maxTargetsAdd": 1,
-              "damage": 5
+              "damage": 5,
+              "desc": "Rush ticket \u2014 sears a third dish at once"
             }
           ]
         },
@@ -693,14 +715,16 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 250,
-              "damage": 8
+              "damage": 8,
+              "desc": "A hotter griddle \u2014 each sear hits harder"
             },
             {
               "cost": 500,
               "damage": 6,
               "knockbackBase": 55,
               "knockbackSizeRef": 12,
-              "knockbackChance": 0.3
+              "knockbackChance": 0.3,
+              "desc": "Sears may spatula-fling a dish back down the belt"
             }
           ]
         }
@@ -722,12 +746,14 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 300,
-              "cooldownMul": 0.95
+              "cooldownMul": 0.95,
+              "desc": "Dunks buns to bite a little faster"
             },
             {
               "cost": 550,
               "solomonSplit": true,
-              "damage": 6
+              "damage": 6,
+              "desc": "Splits each dish and eats it as two bites"
             }
           ]
         },
@@ -737,12 +763,14 @@ window.BALANCE = {
             {
               "cost": 300,
               "comboCapAdd": 3,
-              "cooldownMul": 0.78
+              "cooldownMul": 0.78,
+              "desc": "A higher combo ceiling and faster bites"
             },
             {
               "cost": 550,
               "comboCapAdd": 2,
-              "mustardBonus": 45
+              "mustardBonus": 45,
+              "desc": "At max combo, kills pay bonus Tips"
             }
           ]
         }
@@ -765,11 +793,13 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 250,
-              "cooldownMul": 0.6
+              "cooldownMul": 0.6,
+              "desc": "Stokes the smoke faster \u2014 stacks build quicker"
             },
             {
               "cost": 550,
-              "burntEnds": 3
+              "burntEnds": 3,
+              "desc": "Smoke stacks carry to the next dish it locks"
             }
           ]
         },
@@ -779,11 +809,13 @@ window.BALANCE = {
             {
               "cost": 250,
               "smokeStacksAdd": 2,
-              "cooldownMul": 0.8
+              "cooldownMul": 0.8,
+              "desc": "Deeper smoke \u2014 more stacks, applied faster"
             },
             {
               "cost": 550,
-              "probeThreshold": 0.15
+              "probeThreshold": 0.15,
+              "desc": "At full smoke, finishes off a badly-hurt dish"
             }
           ]
         }
@@ -809,11 +841,13 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 250,
-              "slowPerStackAdd": 0.04
+              "slowPerStackAdd": 0.04,
+              "desc": "Thicker ranch \u2014 each coat slows more"
             },
             {
               "cost": 550,
-              "dpsPerStackAdd": 1
+              "dpsPerStackAdd": 1,
+              "desc": "The drizzle bites harder the more it coats"
             }
           ]
         },
@@ -823,11 +857,13 @@ window.BALANCE = {
             {
               "cost": 250,
               "coneHalfAdd": 12,
-              "range": 25
+              "range": 25,
+              "desc": "A wider spray cone with longer reach"
             },
             {
               "cost": 600,
-              "kegPeriod": 4
+              "kegPeriod": 4,
+              "desc": "Every few seconds a keg-burst coats to max"
             }
           ]
         }
@@ -850,12 +886,14 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 150,
-              "cooldownMul": 0.5
+              "cooldownMul": 0.5,
+              "desc": "Hands out free samples much faster"
             },
             {
               "cost": 250,
               "cooldownMul": 0.8,
-              "lossLeader": 15
+              "lossLeader": 15,
+              "desc": "Marked dishes tip extra when eaten"
             }
           ]
         },
@@ -864,12 +902,14 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 150,
-              "ampMulAdd": 0.12
+              "ampMulAdd": 0.12,
+              "desc": "A stronger mark \u2014 marked dishes take more damage"
             },
             {
               "cost": 300,
               "bulkTargets": 3,
-              "bulkRadius": 60
+              "bulkRadius": 60,
+              "desc": "Marks a whole cluster of nearby dishes at once"
             }
           ]
         }

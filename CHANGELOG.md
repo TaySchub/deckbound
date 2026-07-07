@@ -5,6 +5,32 @@ Format is deliberately simple and plain-language.
 
 ## [Unreleased]
 
+### Fixed
+- **Chrome polish for the 10-tower roster** (Issue #94, display-only — zero numeric
+  or mechanic changes; the gate and both smokes are byte-identical to main). Four
+  real-device (phone landscape) fixes:
+  - **Hub deck no longer overflows or truncates names.** "Your regulars" was laid
+    out as a single row for 5 short names; it now **wraps to a 2-row grid** (5×2 at
+    10 towers, headroom for ~12) and every name renders in full — cards shrink the
+    font and wrap to 2 lines rather than ellipsize. Tap-for-details is now a **modal
+    popover** showing the blurb and both upgrade paths with each tier's description.
+  - **Rail names render in full in-game.** The left-rail cards wrap to 2 lines with a
+    per-card shrink-to-fit font, so "Short-Order Cook" / "Competitive Eater" /
+    "Milkshake Slurper" read cleanly (verified with headroom for a 19-char future
+    name like "Hot-Sauce Daredevil"). Cards are a touch taller; the rail still scrolls.
+  - **Upgrade descriptions in the tower sheet.** Every upgrade tier gained a short,
+    plain-language description in `data/balance.json` (~40 one-liners, behavior-accurate
+    to the current deltas/signatures, no staleable numbers). The right-side sheet's
+    path rows now show the relevant tier's line (next purchase, or the bought tier
+    when maxed; a locked-out path shows what it would have done, dimmed); rows grew and
+    the sheet reflowed with the Sell row still reachable. The hub popover uses the same
+    strings.
+  - **Tutorial hint clears the HUD.** The prep hint now sits on its own backing pill
+    below the HUD readout bar, so it never overlaps the HUD chips at phone size (the
+    standing PR #81 nit).
+  All interactive rects still clear 44 CSS px at ~844×390 (hub/rail cards 55, path
+  rows 62, targeting/sell 45). `src/engine.js` and the tests are untouched.
+
 ### Changed
 - **Deep rebalance: every one of the 10 towers now earns its seat** (Issue
   #92, stage 2; Designer hat). Numbers only — 42 values in

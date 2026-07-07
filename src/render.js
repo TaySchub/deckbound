@@ -24,7 +24,7 @@ const START_BTN = { x: 466, y: 388, w: 214, h: 56 };   // "Send/Call Wave", seat
 // Sizes are tuned so EVERY interactive rect clears 44 CSS px at ~844x390 phone
 // scale (canvas ~756 CSS wide, scale ~0.84 -> a rect needs >=53 design px in its
 // smaller dimension).
-const RAIL_CARD = { w: RAIL.w - 16, h: 58, gap: 6 };   // vertical tower-deck cards filling the left rail
+const RAIL_CARD = { w: RAIL.w - 16, h: 66, gap: 6 };   // vertical tower-deck cards (taller so a 2-line name + portrait both fit; the rail scrolls)
 const RAIL_TOP = 128;                                  // rail card zone start (below the stacked pause/mute)
 const SHEET_X = DESIGN.w - SHEET.w;                    // left edge of the slide-in upgrade sheet
 const CONTINUE_BTN = { x: DESIGN.w / 2 - 100, y: DESIGN.h / 2 + 40, w: 200, h: 54 };   // run-summary → hub
@@ -176,55 +176,64 @@ function shopButtonRects() {
 // by draw + hit-testing.
 let hubOpen = null;
 function toggleHubCard(id) { hubOpen = hubOpen === id ? null : id; }
-function hubCardRect(i) { return { x: 40 + i * 104, y: 146, w: 94, h: 132 }; }
+function closeHubDetails() { hubOpen = null; }
 function hubSlotCount() { return deckTypes().length + (META.unlocked.includes("sniper") ? 0 : 1); }
-
-function drawHubCard(ctx, r, def, expanded) {
-  const hover = inRect(game.pointer, r);
-  ctx.fillStyle = expanded ? COLOR.ctrlSel : COLOR.ctrlBg;
-  roundRect(ctx, r.x, r.y, r.w, r.h, 8); ctx.fill();
-  ctx.lineWidth = expanded ? 2 : 1;
-  ctx.strokeStyle = expanded ? def.color : (hover ? COLOR.ctrlLineHi : COLOR.ctrlLine);
-  roundRect(ctx, r.x, r.y, r.w, r.h, 8); ctx.stroke();
-  if (expanded) { ctx.fillStyle = def.color; roundRect(ctx, r.x + 5, r.y + 3, r.w - 10, 3, 1.5); ctx.fill(); }
-  const cx = r.x + r.w / 2;
-  drawSoftShadow(ctx, cx, r.y + 42, 21, 6, COLOR.unitShadow);
-  drawCustomer(ctx, def.id, cx, r.y + 34, 21, def.color);
-  ctx.fillStyle = COLOR.ink; ctx.font = "bold 11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-  ctx.fillText(fitText(ctx, def.name.replace(/^The /, ""), r.w - 8), cx, r.y + 74);
-  // Role blurb — the "more fun" bit: what this customer does, visible on the card.
-  ctx.fillStyle = COLOR.muted; ctx.font = "8.5px system-ui, sans-serif";
-  const lines = wrapLabel(ctx, def.blurb, r.w - 12, 3);
-  let by = r.y + 88;
-  for (const ln of lines) { ctx.fillText(ln, cx, by); by += 10; }
-  drawCostChip(ctx, cx, r.y + r.h - 11, def.cost, true, 13);
-  ctx.textAlign = "left";
+// Hub deck grid — wraps to 2 rows so 10 cards (headroom for ~12) fit the hub-left
+// area without overflowing or truncating names. ONE source shared by draw +
+// hit-testing (the cardRect discipline).
+function hubGrid(n) {
+  const gx = 40, gw = 584;                 // deck area, left of the shop column
+  const rows = n > 5 ? 2 : 1;
+  const cols = Math.ceil(n / rows);
+  const gap = 8, rowGap = 10, top = 146;
+  const cw = (gw - (cols - 1) * gap) / cols;
+  const ch = rows === 1 ? 122 : 66;        // 2-row cards are compact (name+portrait+cost); the blurb/paths move to the tap popover
+  return { gx, gw, rows, cols, gap, rowGap, top, cw, ch };
+}
+function hubCardRect(i, n) {
+  const g = hubGrid(n || hubSlotCount());
+  const col = i % g.cols, row = (i / g.cols) | 0;
+  return { x: g.gx + col * (g.cw + g.gap), y: g.top + row * (g.ch + g.rowGap), w: g.cw, h: g.ch };
 }
 
-// The expanded details view under the cards: the tapped regular's two upgrade
-// paths (names live in balance.json) so you can plan a build before Opening.
+// The tap-for-details popover: a MODAL card (drawn last, over the hub) showing the
+// tapped regular's blurb and BOTH upgrade paths with each tier's plain-language
+// description (the same strings the in-run upgrade sheet uses, from balance.json).
+// Any tap dismisses it (handled in main.js). Roomy so 10 towers don't need to
+// crowd the details inline.
 function drawHubDetails(ctx, def) {
-  const x = 40, y = 288, w = 560, h = 66;
-  ctx.fillStyle = COLOR.panel; roundRect(ctx, x, y, w, h, 10); ctx.fill();
-  ctx.strokeStyle = def.color; ctx.lineWidth = 1.5; roundRect(ctx, x, y, w, h, 10); ctx.stroke();
-  drawSoftShadow(ctx, x + 30, y + 34, 17, 5, COLOR.unitShadow);
-  drawCustomer(ctx, def.id, x + 30, y + 28, 17, def.color);
-  ctx.fillStyle = COLOR.ink; ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  ctx.fillText(def.name, x + 58, y + 22);
-  ctx.fillStyle = COLOR.muted; ctx.font = "10px system-ui, sans-serif";
-  ctx.fillText(fitText(ctx, def.blurb, w - 70), x + 58, y + 38);
-  ctx.fillStyle = COLOR.gold; ctx.font = "9px system-ui, sans-serif";
-  ctx.fillText("UPGRADE PATHS", x + 58, y + 54);
-  const paths = towerPaths(def.id);
-  const pw = (w - 58 - 24) / 2;
+  ctx.fillStyle = "rgba(8,10,15,0.6)"; ctx.fillRect(0, 0, DESIGN.w, DESIGN.h);   // scrim
+  const w = 620, h = 262, x = (DESIGN.w - w) / 2, y = 92;
+  ctx.fillStyle = COLOR.panel; roundRect(ctx, x, y, w, h, 12); ctx.fill();
+  ctx.strokeStyle = def.color; ctx.lineWidth = 2; roundRect(ctx, x, y, w, h, 12); ctx.stroke();
+  // Header: portrait + name + blurb.
+  drawSoftShadow(ctx, x + 34, y + 40, 20, 6, COLOR.unitShadow);
+  drawCustomer(ctx, def.id, x + 34, y + 34, 20, def.color);
+  ctx.fillStyle = COLOR.ink; ctx.font = "bold 16px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(def.name, x + 66, y + 26);
+  ctx.fillStyle = COLOR.muted; ctx.font = "11px system-ui, sans-serif";
+  wrapLabel(ctx, def.blurb, w - 78, 2).forEach((ln, i) => ctx.fillText(ln, x + 66, y + 42 + i * 13));
+  ctx.fillStyle = COLOR.gold; ctx.font = "bold 10px system-ui, sans-serif";
+  ctx.fillText("UPGRADE PATHS", x + 18, y + 78);
+  // Two path columns, each with tier-1 and tier-2 descriptions.
+  const paths = towerPaths(def.id), colGap = 16, pw = (w - 36 - colGap) / 2;
   paths.forEach((pp, i) => {
-    const px = x + 200 + i * (pw + 12), py = y + 44;
-    ctx.fillStyle = COLOR.ctrlBg; roundRect(ctx, px, py, pw, 16, 5); ctx.fill();
-    ctx.strokeStyle = COLOR.ctrlLine; ctx.lineWidth = 1; roundRect(ctx, px, py, pw, 16, 5); ctx.stroke();
-    ctx.fillStyle = COLOR.ink; ctx.font = "9px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(fitText(ctx, pp.name, pw - 8), px + pw / 2, py + 9);
-    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    const px = x + 18 + i * (pw + colGap), py = y + 88, ph = h - (py - y) - 16;
+    ctx.fillStyle = COLOR.ctrlBg; roundRect(ctx, px, py, pw, ph, 8); ctx.fill();
+    ctx.strokeStyle = def.color; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; roundRect(ctx, px, py, pw, ph, 8); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = COLOR.ink; ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(fitText(ctx, pp.name, pw - 16), px + 10, py + 20);
+    pp.tiers.forEach((tier, ti) => {
+      const ty = py + 40 + ti * 44;
+      ctx.fillStyle = COLOR.gold; ctx.font = "bold 9px system-ui, sans-serif";
+      ctx.fillText("TIER " + (ti + 1), px + 10, ty);
+      ctx.fillStyle = COLOR.muted; ctx.font = "10px system-ui, sans-serif";
+      wrapLabel(ctx, tier.desc || "", pw - 20, 2).forEach((ln, li) => ctx.fillText(ln, px + 10, ty + 14 + li * 12));
+    });
   });
+  ctx.fillStyle = COLOR.muted; ctx.font = "9px system-ui, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("tap anywhere to close", DESIGN.w / 2, y + h - 6);
+  ctx.textAlign = "left";
 }
 
 function drawMenu(ctx) {
@@ -262,20 +271,22 @@ function drawMenu(ctx) {
   ctx.fillStyle = COLOR.muted; ctx.font = "11px system-ui, sans-serif";
   ctx.fillText("tap a customer to see their upgrade paths", 158, 134);
   const deck = deckTypes();
-  for (let i = 0; i < deck.length; i++) drawHubCard(ctx, hubCardRect(i), deck[i], hubOpen === deck[i].id);
-  // Locked slot hint if Sniper not yet unlocked — same card frame, a vector padlock.
+  const slots = hubSlotCount();
+  for (let i = 0; i < deck.length; i++) {
+    const rr = hubCardRect(i, slots);
+    drawDeckCard(ctx, rr, deck[i], hubOpen === deck[i].id, inRect(game.pointer, rr), true, 16);   // one shared card language (rail + hub)
+  }
+  // Locked slot for the not-yet-unlocked Sniper — same grid cell, a vector padlock.
   if (!META.unlocked.includes("sniper")) {
-    const r = hubCardRect(deck.length);
-    ctx.fillStyle = COLOR.chip; roundRect(ctx, r.x, r.y, r.w, r.h, 8); ctx.fill();
+    const r = hubCardRect(deck.length, slots);
+    ctx.fillStyle = COLOR.chip; roundRect(ctx, r.x, r.y, r.w, r.h, 6); ctx.fill();
     ctx.strokeStyle = COLOR.ctrlLine; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
-    roundRect(ctx, r.x, r.y, r.w, r.h, 8); ctx.stroke(); ctx.setLineDash([]);
-    drawLockIcon(ctx, r.x + r.w / 2, r.y + r.h / 2 - 6, 11, COLOR.muted);
-    ctx.fillStyle = COLOR.muted; ctx.textAlign = "center"; ctx.font = "10px system-ui, sans-serif"; ctx.textBaseline = "alphabetic";
-    ctx.fillText("locked", r.x + r.w / 2, r.y + r.h / 2 + 26);
+    roundRect(ctx, r.x, r.y, r.w, r.h, 6); ctx.stroke(); ctx.setLineDash([]);
+    drawLockIcon(ctx, r.x + r.w / 2, r.y + r.h / 2 - 4, 10, COLOR.muted);
+    ctx.fillStyle = COLOR.muted; ctx.textAlign = "center"; ctx.font = "9px system-ui, sans-serif"; ctx.textBaseline = "alphabetic";
+    ctx.fillText("locked", r.x + r.w / 2, r.y + r.h - 8);
     ctx.textAlign = "left";
   }
-  // Expanded details for the tapped regular (still unlocked/owned).
-  if (hubOpen && deck.some((d) => d.id === hubOpen)) drawHubDetails(ctx, TOWER_BY_ID[hubOpen]);
 
   // Shop (right column).
   ctx.fillStyle = COLOR.ink; ctx.font = "bold 14px system-ui, sans-serif"; ctx.textAlign = "left";
@@ -343,6 +354,10 @@ function drawMenu(ctx) {
     ctx.fillText("(discards your saved run)", DESIGN.w / 2, PLAY_BTN.y - 6);
   }
   ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+
+  // Tap-for-details popover LAST so it overlays the hub as a modal (the 2-row deck
+  // grid leaves no inline room; details is tap-to-open, tap-anywhere-to-close).
+  if (hubOpen && deck.some((d) => d.id === hubOpen)) drawHubDetails(ctx, TOWER_BY_ID[hubOpen]);
 }
 
 /* ---- In-run drawing ---- */
@@ -766,18 +781,26 @@ function drawDeckCard(ctx, r, def, selected, hover, affordable, portraitR) {
   if (selected) { ctx.fillStyle = def.color; roundRect(ctx, r.x + 4, r.y + 2.5, r.w - 8, 2.5, 1.2); ctx.fill(); }
   ctx.globalAlpha = affordable ? 1 : 0.42;
   const cx = r.x + r.w / 2;
-  const py = r.y + (r.h - 22) / 2;   // portrait centered in the space above the 22px name+chip zone
-  drawSoftShadow(ctx, cx, py + portraitR * 0.9, portraitR * 0.95, portraitR * 0.3, COLOR.unitShadow);
-  drawCustomer(ctx, def.id, cx, py, portraitR, def.color);
-  // Name — centered, "The " dropped so more reads; wraps to 2 lines on the
-  // taller hub cards, 1 line (ellipsized) on the short toolbar cards.
-  const twoLine = r.h >= 60;
-  ctx.fillStyle = affordable ? COLOR.ink : COLOR.muted;
-  ctx.font = "bold " + (twoLine ? 8 : 8.5) + "px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-  const lines = wrapLabel(ctx, def.name.replace(/^The /, ""), r.w - 6, twoLine ? 2 : 1);
   const chipY = r.y + r.h - 7;
-  let ny = chipY - 9 - (lines.length - 1) * 9;
-  for (const ln of lines) { ctx.fillText(ln, cx, ny); ny += 9; }
+  // Name — centered, "The " dropped so more reads; up to 2 lines with the font
+  // SHRINKING to fit so it NEVER truncates (Roster Growth names like "Short-Order
+  // Cook"). The full name wins over portrait size when the two would collide.
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  const nm = fitWrappedName(ctx, def.name.replace(/^The /, ""), r.w - 6, 2, 8.5, 6.5);
+  const lineH = nm.px + 1.5;
+  const topBaseline = chipY - 11 - (nm.lines.length - 1) * lineH;
+  const nameTop = topBaseline - nm.px;
+  // Portrait centered in the space above the name; radius clamped so a 2-line name
+  // can't overlap it (so a 1-line name keeps a big portrait, a 2-line one a smaller).
+  const availTop = nameTop - (r.y + 4);
+  const pr = Math.max(8, Math.min(portraitR, availTop / 2 - 1));
+  const py = r.y + 4 + availTop / 2;
+  drawSoftShadow(ctx, cx, py + pr * 0.88, pr * 0.92, pr * 0.28, COLOR.unitShadow);
+  drawCustomer(ctx, def.id, cx, py, pr, def.color);
+  ctx.font = "bold " + nm.px + "px system-ui, sans-serif";
+  ctx.fillStyle = affordable ? COLOR.ink : COLOR.muted;
+  let ny = topBaseline;
+  for (const ln of nm.lines) { ctx.fillText(ln, cx, ny); ny += lineH; }
   drawCostChip(ctx, cx, chipY, def.cost, affordable, 13);
   ctx.globalAlpha = 1;
 }
@@ -855,16 +878,18 @@ function towerSheet(t) {
   const x = SHEET_X, w = SHEET.w, pad = 14;
   const gx = x + pad, gw = w - 2 * pad;
   const close = { x: x + w - 62, y: 8, w: 54, h: 54 };
-  const bw = (gw - 10) / 2, bh = 56, gGap = 10, gTop = 104;
+  // Targeting grid moved up + buttons a hair shorter (still ≥44 CSS px) to free
+  // vertical room for the taller path rows that now carry a 2-line description.
+  const bw = (gw - 10) / 2, bh = 54, gGap = 8, gTop = 88;
   const modes = TARGETING_MODES.map(([mode, label], i) => {
     const col = i % 2, row = (i / 2) | 0;
     return { mode, label, rect: { x: gx + col * (bw + 10), y: gTop + row * (bh + gGap), w: bw, h: bh } };
   });
-  const rowH = 56, rowGap = 10, pathsTop = gTop + 2 * bh + gGap + 14;
+  const rowH = 74, rowGap = 8, pathsTop = gTop + 2 * bh + gGap + 12;   // path rows carry name + description + status
   const paths = towerPaths(t.typeId).map((pp, i) => ({
-    id: pp.id, name: pp.name, rect: { x: gx, y: pathsTop + i * (rowH + rowGap), w: gw, h: rowH },
+    id: pp.id, name: pp.name, tiers: pp.tiers, rect: { x: gx, y: pathsTop + i * (rowH + rowGap), w: gw, h: rowH },
   }));
-  const sell = { rect: { x: gx, y: pathsTop + 2 * (rowH + rowGap) + 8, w: gw, h: rowH } };
+  const sell = { rect: { x: gx, y: pathsTop + 2 * (rowH + rowGap) + 6, w: gw, h: 54 } };   // stays reachable within VIEW.h (=450)
   return { rect: { x, y: 0, w, h: VIEW.h }, close, modes, paths, sell, gTop };
 }
 
@@ -905,8 +930,10 @@ function drawTowerSheet(ctx) {
   // Header: portrait + name + committed path/tier.
   drawSoftShadow(ctx, s.rect.x + 34, 52, 18, 6, COLOR.unitShadow);
   drawCustomer(ctx, t.typeId, s.rect.x + 34, 46, 18, def.color);
-  ctx.fillStyle = COLOR.ink; ctx.font = "bold 13px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  ctx.fillText(fitText(ctx, def.name, s.close.x - (s.rect.x + 60) - 4), s.rect.x + 60, 40);
+  ctx.fillStyle = COLOR.ink; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  const hn = fitWrappedName(ctx, def.name.replace(/^The /, ""), s.close.x - (s.rect.x + 58) - 4, 1, 13, 10.5);
+  ctx.font = "bold " + hn.px + "px system-ui, sans-serif";
+  ctx.fillText(hn.lines[0], s.rect.x + 58, 40);
   const sub = t.upgradeTier === 0 ? "choose an upgrade path" : def.upgrades[t.upgradePath].name + "  " + t.upgradeTier + "/" + MAX_TIER;
   ctx.fillStyle = COLOR.muted; ctx.font = "10px system-ui, sans-serif";
   ctx.fillText(fitText(ctx, sub, s.rect.w - 72), s.rect.x + 60, 58);
@@ -943,20 +970,27 @@ function drawTowerSheet(ctx) {
     ctx.globalAlpha = lockedOut ? 0.5 : 1;
     ctx.fillStyle = bg; roundRect(ctx, r.x, r.y, r.w, r.h, 8); ctx.fill();
     ctx.strokeStyle = border; ctx.lineWidth = committed ? 2 : 1; roundRect(ctx, r.x, r.y, r.w, r.h, 8); ctx.stroke();
-    const mid = r.y + r.h / 2;
-    ctx.fillStyle = lockedOut ? COLOR.muted : COLOR.ink; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "bold 12px system-ui, sans-serif";
-    ctx.fillText(fitText(ctx, pb.name, r.w - 66), r.x + 10, mid - 7);
-    ctx.font = "9px system-ui, sans-serif"; ctx.fillStyle = COLOR.muted;
-    ctx.fillText(committed ? (maxed ? "committed · maxed" : "committed path") : (lockedOut ? "path locked out" : "next: tier " + (t.upgradeTier + 1)), r.x + 10, mid + 9);
+    // Top line: path name (left) + cost / MAX / locked (right).
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = lockedOut ? COLOR.muted : COLOR.ink; ctx.textAlign = "left"; ctx.font = "bold 12px system-ui, sans-serif";
+    ctx.fillText(fitText(ctx, pb.name, r.w - 74), r.x + 10, r.y + 19);
     ctx.font = "bold 10px system-ui, sans-serif";
     if (lockedOut) {
-      ctx.fillStyle = COLOR.muted; ctx.textAlign = "right"; ctx.fillText("locked", r.x + r.w - 10, mid);
-      drawLockIcon(ctx, r.x + r.w - 10 - ctx.measureText("locked").width - 9, mid, 4.5, COLOR.muted);
+      ctx.fillStyle = COLOR.muted; ctx.textAlign = "right"; ctx.fillText("locked", r.x + r.w - 10, r.y + 19);
+      drawLockIcon(ctx, r.x + r.w - 10 - ctx.measureText("locked").width - 9, r.y + 15, 4.5, COLOR.muted);
     } else if (maxed) {
-      ctx.fillStyle = COLOR.good; ctx.textAlign = "right"; ctx.fillText("MAX", r.x + r.w - 10, mid);
+      ctx.fillStyle = COLOR.good; ctx.textAlign = "right"; ctx.fillText("MAX", r.x + r.w - 10, r.y + 19);
     } else {
-      drawCostChip(ctx, r.x + r.w - 10, mid, tier.cost, afford, 16, "right");
+      drawCostChip(ctx, r.x + r.w - 10, r.y + 14, tier.cost, afford, 16, "right");
     }
+    // Description — what buying NEXT does; a maxed committed path shows its current
+    // effect; a locked-out path shows what it would have done (dimmed by the row).
+    const desc = tier ? tier.desc : (committed ? (pb.tiers[t.upgradeTier - 1] || {}).desc : (pb.tiers[0] || {}).desc);
+    ctx.textAlign = "left"; ctx.fillStyle = lockedOut ? COLOR.muted : "#c9d0dc"; ctx.font = "10px system-ui, sans-serif";
+    wrapLabel(ctx, desc || "", r.w - 20, 2).forEach((ln, li) => ctx.fillText(ln, r.x + 10, r.y + 38 + li * 13));
+    // Status sub-line.
+    ctx.fillStyle = COLOR.muted; ctx.font = "8px system-ui, sans-serif";
+    ctx.fillText(committed ? (maxed ? "committed · maxed" : "committed · buy tier " + (t.upgradeTier + 1)) : (lockedOut ? "path locked out" : "next purchase: tier " + (t.upgradeTier + 1)), r.x + 10, r.y + r.h - 8);
   }
   ctx.globalAlpha = 1;
   // Sell row — destructive affordance (muted red) with the live refund as a gold
@@ -997,8 +1031,18 @@ function drawHUD(ctx) {
 
 function drawMessage(ctx) {
   if (game.messageTimer <= 0 || game.phase === "lost") return;
-  ctx.globalAlpha = Math.min(1, game.messageTimer); ctx.fillStyle = COLOR.ink; ctx.font = "13px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(game.message, VIEW.w / 2, 52); ctx.globalAlpha = 1;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, game.messageTimer);
+  ctx.font = "13px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  // Sit the hint on its own backing pill, clearly BELOW the HUD readout bar (which
+  // occupies y 6..34), so it never overlaps the HUD chips at any size (PR #81 nit).
+  const cy = 54, ph = 22, maxW = VIEW.w - 120;
+  const text = fitText(ctx, game.message, maxW);
+  const pw = ctx.measureText(text).width + 26, px = VIEW.w / 2 - pw / 2;
+  ctx.fillStyle = "rgba(8,10,15,0.72)"; roundRect(ctx, px, cy - ph / 2, pw, ph, 11); ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.10)"; ctx.lineWidth = 1; roundRect(ctx, px, cy - ph / 2, pw, ph, 11); ctx.stroke();
+  ctx.fillStyle = COLOR.ink; ctx.fillText(text, VIEW.w / 2, cy + 0.5);
+  ctx.restore();
 }
 
 function drawSummary(ctx) {

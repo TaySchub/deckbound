@@ -236,3 +236,15 @@ Render `tools/dev/harness.html?mode=sheet` and check:
   (sample). Silhouette diversification continues per the RG1 ruling: a wide
   shallow station (smoker), a TALL prop-with-tiny-person (fountain), and a cart
   station; each keeps ONE identity feature and the shared face/limb helpers.
+- **2026-07-07** (10-tower chrome polish, Issue #94) — **Names never truncate; the
+  deck wraps.** New helper `fitWrappedName` shrinks the font (then wraps to 2 lines)
+  so a tower NAME always renders in full rather than ellipsize — used by the rail
+  cards, the hub deck cards, and the upgrade-sheet header. The hub "Your regulars"
+  deck **wraps to a 2-row grid** (headroom for ~12 towers) and its cards now reuse
+  the SAME `drawDeckCard` renderer as the rail (one card language, per the #71
+  ruling); the roomy per-card blurb moved to a **tap-to-open details modal** that
+  also lists both upgrade paths' tier descriptions. Upgrade **descriptions** are
+  display strings in `data/balance.json` (describe behavior, not values, so they
+  never stale). The prep **tutorial hint** gained a backing pill and sits below the
+  HUD bar so it never collides with the HUD chips. Display-only: no mascot art, no
+  numbers, no mechanics changed.
