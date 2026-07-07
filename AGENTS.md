@@ -1,6 +1,6 @@
 # AGENTS.md — read this first, every session
 
-This is the orientation file for any agent working on Deckbound. **Before doing
+This is the orientation file for any agent working on Blue-Plate Special (the game formerly known as Deckbound). **Before doing
 anything, read, in this order:** this file → `GAME_BRIEF.md` → `PROJECT.md` →
 the open **GitHub Issues** → the latest **GitHub Actions** run. Then state which
 role you're in and your plan, and confirm before anything non-trivial (this

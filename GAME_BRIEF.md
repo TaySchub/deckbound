@@ -1,4 +1,4 @@
-# GAME_BRIEF.md — "Deckbound" (working title)
+# GAME_BRIEF.md — "Blue-Plate Special" (working title)
 
 > **Frozen source of truth for the build.** Chosen at the commitment gate. Ideation is **closed** for this game — new ideas go to `/docs/ideas-parked.md`. Refinements *within* this concept are welcome; scope-expanding additions are parked.
 

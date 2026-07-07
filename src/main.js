@@ -1,5 +1,5 @@
 /*
-  Deckbound — src/main.js
+  Blue-Plate Special — src/main.js
   The shell: boot, input, the fixed-timestep loop, and the FX wiring that
   connects the DOM-free engine to audio + UI effects. This is the only file
   that touches the DOM. Load order (index.html): balance.data.js -> data.js ->
@@ -56,7 +56,7 @@ window.__uiRects = function () {
 
 window.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("game-canvas");
-  if (!canvas) { console.error("Deckbound: could not find the game canvas."); return; }
+  if (!canvas) { console.error("Blue-Plate Special: could not find the game canvas."); return; }
   game.canvas = canvas;
   game.ctx = canvas.getContext("2d");
   META = loadMeta();
@@ -66,7 +66,7 @@ window.addEventListener("DOMContentLoaded", () => {
   loadMap(savedMap || MAPS[0]);
   game.phase = "menu";
   setupInput(canvas);
-  console.log("Deckbound v1 loaded. Essence:", META.essence);
+  console.log("Blue-Plate Special v1 loaded. Essence:", META.essence);
   startGameLoop();
 });
 

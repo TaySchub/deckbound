@@ -13,7 +13,7 @@ Scope:
 
 What you check:
 1. Every library, font, art, and audio asset is properly licensed for this use,
-   and nothing reproduces real, branded, or trademarked content (Deckbound is
+   and nothing reproduces real, branded, or trademarked content (Blue-Plate Special is
    original assets and theme only).
 2. Flag anything that would need a lawyer before launch — clearly, as a flag, not
    a ruling.

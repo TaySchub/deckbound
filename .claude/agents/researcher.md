@@ -18,7 +18,7 @@ You are the system's only exposure to the open web. Two hard rules:
 2. **Patterns, not property.** You may study what makes tower-defense games work
    (difficulty ramps, the "one more wave" hook, upgrade satisfaction, pacing).
    You must NOT reproduce any real game's assets, art, names, tower designs, or
-   trade dress. Deckbound is original assets only. Extract the principle, discard
+   trade dress. Blue-Plate Special is original assets only. Extract the principle, discard
    the specifics.
 
 Deliverable: a brief in `docs/research/` — the question, the options, a

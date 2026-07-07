@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Deckbound are recorded here. Newest at the top.
+All notable changes to Blue-Plate Special (formerly Deckbound) are recorded here. Newest at the top.
 Format is deliberately simple and plain-language.
 
 ## [Unreleased]

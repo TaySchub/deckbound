@@ -1,5 +1,5 @@
 /*
-  Deckbound — src/render.js
+  Blue-Plate Special — src/render.js
   The render pass + all UI: screens, HUD, toolbar, panels, buttons, and the
   in-run scene (belt, kitchen, chute, enemies, towers, particles). Reads game
   state and calls art.js draw functions; never mutates gameplay state.

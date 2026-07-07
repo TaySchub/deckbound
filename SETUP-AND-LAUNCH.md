@@ -15,13 +15,13 @@ through your browser, so **your password is never typed into a command**.
 ## Part 1 — Run it locally (30 seconds)
 
 The simplest way: find `index.html` in this folder and **double-click it**. It
-opens in your browser and the "Deckbound" game loads (hub screen → Start Run).
+opens in your browser and the "Blue-Plate Special" game loads (hub screen → Start Run).
 
 If double-clicking ever misbehaves, run a tiny local web server instead. Open
 the **Terminal** app and paste:
 
 ```bash
-cd path/to/deckbound   # this folder — tip: type "cd " then drag it from Finder into Terminal
+cd path/to/blueplate   # this folder — tip: type "cd " then drag it from Finder into Terminal
 python3 -m http.server 8000
 ```
 
@@ -32,7 +32,7 @@ Terminal to stop the server.
 
 ## Part 2 — Connect this folder to GitHub (one time)
 
-> **Already done?** If your `deckbound` repo is already on GitHub (it is, if
+> **Already done?** If your `blueplate` repo is already on GitHub (it is, if
 > you're reading this there), this one-time setup is complete — skip to Part 4 to
 > work on the game. This section is kept as a record of how it was wired up.
 
@@ -59,14 +59,14 @@ Answer the prompts: choose **GitHub.com**, protocol **HTTPS**, and
 `https://github.com/login/device`. Type the code in your browser, approve, done.
 Your password stays between you and GitHub.
 
-### Step 2c — Push this folder to your (empty) `deckbound` repo
+### Step 2c — Push this folder to your (empty) `blueplate` repo
 
-You already made an empty `deckbound` repo, so we just link this folder to it
+You already made an empty `blueplate` repo, so we just link this folder to it
 and push. Run these from inside this folder. (The first two lines set who your
 commits show as — use your own name/email.)
 
 ```bash
-cd path/to/deckbound   # this folder (the one with index.html)
+cd path/to/blueplate   # this folder (the one with index.html)
 
 git config --global user.name  "Your Name"
 git config --global user.email "you@example.com"
@@ -77,8 +77,8 @@ git add .
 git commit -m "Initial commit: game, docs, and Studio Feed workflow"
 
 # This line auto-fills your GitHub username from your gh login, so you don't
-# have to type it. It links this folder to your empty deckbound repo and pushes.
-git remote add origin "https://github.com/$(gh api user --jq .login)/deckbound.git"
+# have to type it. It links this folder to your empty blueplate repo and pushes.
+git remote add origin "https://github.com/$(gh api user --jq .login)/blueplate.git"
 git push -u origin main
 ```
 
@@ -115,7 +115,7 @@ rules, **I won't enable this** — you flip the switch. When you're ready:
 
 Repo on GitHub → **Settings → Pages** → under "Build and deployment",
 **Source: Deploy from a branch**, **Branch: `main`, folder `/ (root)`** → Save.
-After a minute your game is at `https://YOUR-USERNAME.github.io/deckbound/`,
+After a minute your game is at `https://YOUR-USERNAME.github.io/blueplate/`,
 openable on your Mac and iPhone.
 
 That's Task 2. We'll pause here for your OK before touching any of it.

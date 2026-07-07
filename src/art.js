@@ -1,5 +1,5 @@
 /*
-  Deckbound — src/art.js
+  Blue-Plate Special — src/art.js
   Pure drawing functions: every mascot and food, shared cartoon helpers, and
   small glyphs/utility draws. Everything takes a ctx + numbers and draws —
   no game state is read or written here. Style rules: docs/ART_STYLE.md.

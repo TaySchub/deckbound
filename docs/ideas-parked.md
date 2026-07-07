@@ -1,6 +1,6 @@
 # Parked Ideas
 
-Deckbound's concept is **frozen** (see `GAME_BRIEF.md`). Ideas that expand scope
+Blue-Plate Special's concept is **frozen** (see `GAME_BRIEF.md`). Ideas that expand scope
 or belong to a different game go here instead of into the build — so we stay
 focused on shipping a fun, stable first version.
 

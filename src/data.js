@@ -1,5 +1,5 @@
 /*
-  Deckbound — src/data.js
+  Blue-Plate Special — src/data.js
   Constants + the balance-data merge. Loads first (after balance.data.js).
 
   window.BALANCE (generated from data/balance.json by tools/gen_balance.py)

@@ -1,4 +1,4 @@
-# Deckbound Art Style Guide
+# Blue-Plate Special Art Style Guide
 
 > **What this is:** the written-down taste of the project, mined from every
 > shipped art decision (CHANGELOG, `docs/FRANCHISE_BACKBONE.md`, and the code
