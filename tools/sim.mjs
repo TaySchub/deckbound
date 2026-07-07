@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Deckbound headless sim — plays the REAL engine, not a re-implementation.
+  Blue-Plate Special headless sim — plays the REAL engine, not a re-implementation.
 
   Loads src/data.js + src/engine.js (the DOM-free half of the game) into Node
   and drives whole runs through the game's own startRun/tryBuild/tryUpgrade/

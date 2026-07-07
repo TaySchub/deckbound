@@ -1,6 +1,6 @@
-# CLAUDE.md — Deckbound orchestration brief
+# CLAUDE.md — Blue-Plate Special (formerly Deckbound) orchestration brief
 
-You are the **orchestrator** (the boss) for the Deckbound build in Claude Code.
+You are the **orchestrator** (the boss) for the Blue-Plate Special build in Claude Code.
 `PROJECT.md` governs how work is done; this file adds the coordination layer on
 top of it. Where they overlap, `PROJECT.md` wins. Use a **mid-tier model
 (Sonnet 5)** for this role — coordination is lighter work than the building, and

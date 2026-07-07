@@ -1,4 +1,4 @@
-# Deckbound Art Style Guide
+# Blue-Plate Special Art Style Guide
 
 > **What this is:** the written-down taste of the project, mined from every
 > shipped art decision (CHANGELOG, `docs/FRANCHISE_BACKBONE.md`, and the code
@@ -248,3 +248,16 @@ Render `tools/dev/harness.html?mode=sheet` and check:
   never stale). The prep **tutorial hint** gained a backing pill and sits below the
   HUD bar so it never collides with the HUD chips. Display-only: no mascot art, no
   numbers, no mechanics changed.
+- **2026-07-07** (Menu + rename, Issue #96) — **The wordmark is an enamel diner
+  sign and the menu speaks its palette.** `drawWordmark` (art.js) is the one
+  source for the Blue-Plate Special mark: cream enamel board, navy rim, teal
+  neon edge-glow, the blue-plate-with-fork badge, "SPECIAL" reversed out of a
+  red ribbon, mustard star sparks — all vector, all scaled off the sign width,
+  system font only. The map-theme accents are promoted to NAMED chrome colors
+  (`COLOR.signRed/signTeal/signYellow/signCream/signNavy`) — menu screens use
+  THESE, never new literals. Menu conventions set here: warm enamel buttons
+  with cream borders (`drawDinerButton`), a navy checker backdrop, Back always
+  top-left, scrollable pages reuse the rail's drag/wheel pattern with a cream
+  scroll thumb. The in-run board chrome is deliberately untouched — the menu is
+  the colorful "street front", the diner floor stays low-contrast so gameplay
+  reads.

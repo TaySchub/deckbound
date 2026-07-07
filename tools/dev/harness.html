@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Deckbound dev harness — the self-serve verification tool for agents (and
+  Blue-Plate Special dev harness — the self-serve verification tool for agents (and
   curious humans). Loads the REAL game code (../../balance.data.js + the
   ../../src/*.js modules, no copies, no mocks) and gives three things:
 
@@ -36,7 +36,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Deckbound dev harness</title>
+<title>Blue-Plate Special dev harness</title>
 <style>
   :root { --bg:#10131a; --panel:#171b24; --ink:#e8ecf3; --muted:#8b94a7; --accent:#6ea8fe; --good:#7dff9b; --bad:#ff6b6b; }
   body { margin:0; padding:16px 20px 60px; background:var(--bg); color:var(--ink);
@@ -54,7 +54,7 @@
 </style>
 </head>
 <body>
-<h1>Deckbound dev harness</h1>
+<h1>Blue-Plate Special dev harness</h1>
 <p class="hint">Real game code, no mocks. Sections: contact sheet (art PRs) · smoke run (gameplay PRs) · live play (feel checks).</p>
 
 <!-- ============ 1) CONTACT SHEET ============ -->
@@ -437,7 +437,7 @@
     const out = document.getElementById("smoke-out");
     out.textContent = JSON.stringify(result, null, 2);
     out.className = result.verdict === "PASS" ? "pass" : "fail";
-    document.title = "SMOKE " + result.verdict + " — Deckbound harness";
+    document.title = "SMOKE " + result.verdict + " — Blue-Plate Special harness";
     console.log("SMOKE_RESULT " + JSON.stringify(result));
   }
 

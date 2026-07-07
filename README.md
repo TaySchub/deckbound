@@ -1,8 +1,10 @@
-# Deckbound
+# Blue-Plate Special
+
+*(working title — formerly Deckbound)*
 
 A tower-defense deckbuilder themed **hungry customers vs. runaway food**: seat
 restaurant customers (your tower cards) along a diner conveyor belt and eat the
-dishes trying to escape to the trash chute — surviving escalating waves, then
+dishes trying to escape to the dish return — surviving escalating waves, then
 collecting and upgrading new customers between runs.
 
 - **What it is / the vision:** see [`GAME_BRIEF.md`](GAME_BRIEF.md) (the frozen spec).
@@ -17,12 +19,13 @@ or see `SETUP-AND-LAUNCH.md` for a tiny local web server if you prefer.)
 
 ## Status
 
-**v1 shipped; post-v1 in progress** — live at <https://tayschub.github.io/deckbound/>:
-the full prep→wave→resolve loop with 5 customer towers (each with its own
-attack identity), 4 runaway foods, **20 generated waves** (win by surviving
-them all), tower upgrades, per-tower targeting, a call-the-wave-early bonus,
-an optional endless mode, and between-run meta-progression. The live backlog
-is GitHub Issues (next up: the tower-upgrades rework, pinned there).
+**v1 shipped; post-v1 in progress** — live at <https://tayschub.github.io/blueplate/>:
+the full prep→wave→resolve loop with **10 customer towers** (each with one named
+role and two upgrade paths), 4 runaway foods, **endless generated waves** (your
+score is how far you get), an enemy status-effect system (smoke, ranch coats,
+sample marks), per-tower targeting, auto-start rounds, save & continue, and
+between-run meta-progression. The live backlog is GitHub Issues at
+[TaySchub/blueplate](https://github.com/TaySchub/blueplate).
 
 ## Tech
 

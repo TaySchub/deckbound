@@ -15,7 +15,7 @@ window.BALANCE = {
   "maps": [
     {
       "id": "blueplate",
-      "name": "Blue-Plate Special",
+      "name": "The Original",
       "tuned": true,
       "theme": {
         "floor": {

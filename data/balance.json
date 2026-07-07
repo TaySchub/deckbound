@@ -10,7 +10,7 @@
   "maps": [
     {
       "id": "blueplate",
-      "name": "Blue-Plate Special",
+      "name": "The Original",
       "tuned": true,
       "theme": {
         "floor": { "bg": "#F2E6C6", "tile": "#3B4552", "tileSize": 45 },

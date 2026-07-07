@@ -1,5 +1,5 @@
 /*
-  Deckbound — src/art.js
+  Blue-Plate Special — src/art.js
   Pure drawing functions: every mascot and food, shared cartoon helpers, and
   small glyphs/utility draws. Everything takes a ctx + numbers and draws —
   no game state is read or written here. Style rules: docs/ART_STYLE.md.
@@ -1334,6 +1334,64 @@ function drawLockIcon(ctx, x, y, s, color) {
 function drawSoftShadow(ctx, x, y, rx, ry, color) {
   ctx.save(); ctx.fillStyle = color;
   ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fill(); ctx.restore();
+}
+
+// The BLUE-PLATE SPECIAL wordmark (Issue #96) — an enamel diner sign, drawn
+// vector at any size. Centered on (cx, cy); `w` is the sign-board width and
+// everything scales off it. Palette: the named COLOR.sign* diner accents.
+// Composition: cream enamel board with a navy rim + teal neon edge-glow, the
+// blue plate itself (rimmed, with a fork) as the badge, "BLUE-PLATE" in navy,
+// "SPECIAL" reversed out of a red ribbon, star sparks in the corners.
+function drawWordmark(ctx, cx, cy, w) {
+  const h = w * 0.34, x = cx - w / 2, y = cy - h / 2, r = h * 0.18;
+  ctx.save();
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  // Neon edge: a soft teal glow behind the board (shadowBlur on the rim pass).
+  ctx.save();
+  ctx.shadowColor = COLOR.signTeal; ctx.shadowBlur = w * 0.045;
+  ctx.fillStyle = COLOR.signNavy; roundRect(ctx, x - w * 0.012, y - w * 0.012, w + w * 0.024, h + w * 0.024, r * 1.2); ctx.fill();
+  ctx.restore();
+  // Enamel face + navy rim + inner teal pinstripe.
+  ctx.fillStyle = COLOR.signCream; roundRect(ctx, x, y, w, h, r); ctx.fill();
+  ctx.strokeStyle = COLOR.signNavy; ctx.lineWidth = Math.max(2, w * 0.011); roundRect(ctx, x, y, w, h, r); ctx.stroke();
+  ctx.strokeStyle = COLOR.signTeal; ctx.lineWidth = Math.max(1.2, w * 0.006);
+  roundRect(ctx, x + w * 0.022, y + w * 0.022, w - w * 0.044, h - w * 0.044, r * 0.7); ctx.stroke();
+  // The blue plate badge (left): teal-rimmed plate + a raised fork.
+  const px = x + w * 0.128, py = cy - h * 0.02, pr = h * 0.30;
+  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = COLOR.signNavy; ctx.lineWidth = Math.max(1.6, w * 0.007);
+  ctx.beginPath(); ctx.arc(px, py, pr, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = COLOR.signTeal; ctx.lineWidth = pr * 0.22;
+  ctx.beginPath(); ctx.arc(px, py, pr * 0.78, 0, 7); ctx.stroke();
+  ctx.strokeStyle = COLOR.signNavy; ctx.lineWidth = Math.max(1.4, pr * 0.12);
+  ctx.beginPath(); ctx.moveTo(px, py + pr * 0.42); ctx.lineTo(px, py - pr * 0.18); ctx.stroke();   // fork handle
+  for (const dx of [-pr * 0.16, 0, pr * 0.16]) {                                                    // tines
+    ctx.beginPath(); ctx.moveTo(px + dx, py - pr * 0.18); ctx.lineTo(px + dx, py - pr * 0.46); ctx.stroke();
+  }
+  // "BLUE-PLATE" — heavy navy lettering with a yellow underline swash.
+  const tx = x + w * 0.24;
+  ctx.fillStyle = COLOR.signNavy; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.font = "900 " + Math.round(h * 0.34) + "px system-ui, sans-serif";
+  ctx.fillText("BLUE-PLATE", tx, cy - h * 0.06);
+  ctx.strokeStyle = COLOR.signYellow; ctx.lineWidth = Math.max(2, h * 0.045);
+  ctx.beginPath(); ctx.moveTo(tx + w * 0.005, cy + h * 0.015); ctx.lineTo(tx + w * 0.62, cy + h * 0.015); ctx.stroke();
+  // "SPECIAL" reversed out of a red ribbon with notched ends.
+  const rw = w * 0.46, rh = h * 0.30, rx = tx + w * 0.055, ry = cy + h * 0.075, notch = rh * 0.42;
+  ctx.fillStyle = COLOR.signRed; ctx.strokeStyle = COLOR.signNavy; ctx.lineWidth = Math.max(1.4, w * 0.005);
+  ctx.beginPath();
+  ctx.moveTo(rx, ry); ctx.lineTo(rx + rw, ry);
+  ctx.lineTo(rx + rw - notch, ry + rh / 2); ctx.lineTo(rx + rw, ry + rh);
+  ctx.lineTo(rx, ry + rh); ctx.lineTo(rx + notch, ry + rh / 2);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = COLOR.signCream; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "bold " + Math.round(rh * 0.62) + "px system-ui, sans-serif";
+  ctx.fillText("S P E C I A L", rx + rw / 2, ry + rh / 2 + 0.5);
+  // Corner star sparks (mustard).
+  ctx.fillStyle = COLOR.signYellow;
+  drawSpark4(ctx, x + w * 0.045, y + h * 0.2, h * 0.09);
+  drawSpark4(ctx, x + w * 0.955, y + h * 0.82, h * 0.09);
+  drawSpark4(ctx, x + w * 0.93, y + h * 0.16, h * 0.055);
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.restore();
 }
 
 // Subtle on-belt cues for the enemy STATUS layer (Roster Growth 2) — the same

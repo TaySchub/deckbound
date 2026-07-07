@@ -1,5 +1,5 @@
 /*
-  Deckbound — src/audio.js
+  Blue-Plate Special — src/audio.js
   100% procedural Web Audio (no files, no deps): the `audio` object.
   Touch only on a dedicated audio branch. The engine never calls this
   directly — src/main.js wires engine FX hooks to these methods.
@@ -35,7 +35,7 @@ const audio = {
       this.master.gain.value = 0.85;
       this.master.connect(comp); comp.connect(this.ctx.destination);
       this.ready = true;
-    } catch (e) { console.warn("Deckbound: audio unavailable —", e); }
+    } catch (e) { console.warn("Blue-Plate Special: audio unavailable —", e); }
   },
 
   // ---- low-level helpers -------------------------------------------------

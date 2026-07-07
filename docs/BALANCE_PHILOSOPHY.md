@@ -1,4 +1,4 @@
-# Deckbound Balance Philosophy
+# Blue-Plate Special Balance Philosophy
 
 > **What this is:** the north star for every tuning PR — the income model, the
 > tower ROLE MAP, and the pricing/bounty rubric (v2, supersedes PR #87's rubric).
@@ -15,7 +15,7 @@
 > way. Research informs design only — no brands or borrowed content enter the
 > game itself.
 
-## 1. How the best TDs pay the player (and what Deckbound adopts)
+## 1. How the best TDs pay the player (and what Blue-Plate Special adopts)
 
 ### The field
 
@@ -44,7 +44,7 @@ weak players drowned, and the sequel removed it. Compounding returns on
 trap *copy* past the fifth, pushing mixed builds through the price tag rather
 than through role design alone.
 
-### What Deckbound adopts (and rejects), against our constraints
+### What Blue-Plate Special adopts (and rejects), against our constraints
 
 Our constraints: **endless** runs gauged at survive@30 (a 30–40 wave horizon,
 not BTD6's 120+), free placement with no tower cap, a scripted deterministic
@@ -62,7 +62,7 @@ overhaul (#87).
   Tips after its 10 anchors max out is a known artifact of the *scripted*
   player, not a player-economy problem — a real player has free placement and
   no cap.)
-- **NO leak-pay** (Kingdom Rush pays leaks; we don't). Deckbound's guardrail
+- **NO leak-pay** (Kingdom Rush pays leaks; we don't). Blue-Plate Special's guardrail
   is the *flat floor* instead: a fully-fumbled wave still pays enough to seat
   the cheapest customer. Paying leaks on top would mute the "kills are tips"
   fantasy — the diner theme wants eating to be the payday.
@@ -89,7 +89,7 @@ The developer's bar: *"in a good tower defense game, all towers have a
 purpose and do different things."* The genre literature says the same thing
 with teeth: every option needs "a scenario that it is *best* at" — an option
 strictly dominated by another at the same price is dead weight that only
-looks like variety. Deckbound's version: **each tower has ONE named role, ONE
+looks like variety. Blue-Plate Special's version: **each tower has ONE named role, ONE
 measurable best-at claim, and a probe that checks it.** Two towers may
 overlap in what they *can* do, never in what they're *best* at.
 

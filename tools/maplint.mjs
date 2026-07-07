@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Deckbound map lint — validates EVERY map in data/balance.json against the
+  Blue-Plate Special map lint — validates EVERY map in data/balance.json against the
   placement rules using the REAL engine (loadMap + canPlace), so authoring a new
   map can't ship a board the sim or the player can't actually build on. This is
   what makes future maps cheap: write JSON, run this, trust the green.
