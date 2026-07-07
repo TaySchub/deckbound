@@ -788,15 +788,15 @@ window.BALANCE = {
           "name": "The Stall",
           "tiers": [
             {
-              "cost": 450,
+              "cost": 500,
               "cooldownMul": 0.6,
               "smokeStacksAdd": 3,
               "desc": "Stokes the fire \u2014 smoke builds much faster and stacks far deeper"
             },
             {
               "cost": 550,
-              "auraPeriod": 1.0,
-              "auraRadius": 70,
+              "auraPeriod": 1.4,
+              "auraRadius": 55,
               "auraSrc": "smoke",
               "desc": "The whole smoker billows \u2014 dishes passing near it pick up smoke"
             }
@@ -811,7 +811,7 @@ window.BALANCE = {
               "desc": "A bigger pit \u2014 a much longer reach"
             },
             {
-              "cost": 550,
+              "cost": 450,
               "smokeTargetsAdd": 1,
               "desc": "Two racks \u2014 smokes a second dish at the same time"
             }
@@ -828,20 +828,20 @@ window.BALANCE = {
       "cooldown": 1.6,
       "behavior": "single",
       "glueFactor": 0.25,
-      "glueDur": 3.0,
+      "glueDur": 2.5,
       "upgrades": {
         "quickPour": {
           "name": "Quick Pour",
           "tiers": [
             {
               "cost": 250,
-              "cooldownMul": 0.7,
-              "desc": "Warms the bottle \u2014 globs pour noticeably faster"
+              "cooldownMul": 0.45,
+              "desc": "Warms the bottle \u2014 globs pour much faster"
             },
             {
               "cost": 550,
-              "trailRadius": 22,
-              "trailLife": 4,
+              "trailRadius": 34,
+              "trailLife": 8,
               "trailCap": 3,
               "desc": "Syrup Trail \u2014 a glued dish that's eaten leaves a puddle that glues passers-by"
             }
@@ -856,7 +856,7 @@ window.BALANCE = {
               "desc": "A longer pour \u2014 more reach"
             },
             {
-              "cost": 600,
+              "cost": 650,
               "glueTargetsAdd": 2,
               "desc": "One big squeeze \u2014 globs three dishes at once"
             }
@@ -872,7 +872,7 @@ window.BALANCE = {
       "damage": 0,
       "cooldown": 1.4,
       "behavior": "support",
-      "supportHaste": 0.94,
+      "supportHaste": 0.85,
       "supportDiscount": 0.1,
       "upgrades": {
         "happyHour": {
@@ -885,7 +885,7 @@ window.BALANCE = {
             },
             {
               "cost": 300,
-              "supportDamage": 1.08,
+              "supportDamage": 1.15,
               "desc": "Everyone's in a good mood \u2014 customers in the aura bite harder"
             }
           ]
@@ -895,14 +895,14 @@ window.BALANCE = {
           "tiers": [
             {
               "cost": 150,
-              "tagPeriod": 5,
-              "tagBonus": 15,
+              "tagPeriod": 4,
+              "tagBonus": 20,
               "tagDur": 6,
               "desc": "Every few seconds, flags a dish \u2014 it tips extra when eaten"
             },
             {
               "cost": 300,
-              "supportHaste": 0.88,
+              "supportHaste": 0.75,
               "desc": "Fresh coffee all round \u2014 the aura speed-up gets stronger"
             }
           ]

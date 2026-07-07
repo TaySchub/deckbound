@@ -179,24 +179,24 @@
       "name": "The Pitmaster", "blurb": "Locks one dish in low-and-slow smoke — a stacking burn that ramps (long range)",
       "cost": 300, "range": 150, "damage": 0, "cooldown": 0.9, "behavior": "single", "smokeDps": 10, "smokeDuration": 4, "smokeStacks": 5,
       "upgrades": {
-        "theStall": { "name": "The Stall", "tiers": [ { "cost": 450, "cooldownMul": 0.6, "smokeStacksAdd": 3, "desc": "Stokes the fire — smoke builds much faster and stacks far deeper" }, { "cost": 550, "auraPeriod": 1.0, "auraRadius": 70, "auraSrc": "smoke", "desc": "The whole smoker billows — dishes passing near it pick up smoke" } ] },
-        "wholeHog": { "name": "Whole Hog", "tiers": [ { "cost": 250, "range": 30, "desc": "A bigger pit — a much longer reach" }, { "cost": 550, "smokeTargetsAdd": 1, "desc": "Two racks — smokes a second dish at the same time" } ] }
+        "theStall": { "name": "The Stall", "tiers": [ { "cost": 500, "cooldownMul": 0.6, "smokeStacksAdd": 3, "desc": "Stokes the fire — smoke builds much faster and stacks far deeper" }, { "cost": 550, "auraPeriod": 1.4, "auraRadius": 55, "auraSrc": "smoke", "desc": "The whole smoker billows — dishes passing near it pick up smoke" } ] },
+        "wholeHog": { "name": "Whole Hog", "tiers": [ { "cost": 250, "range": 30, "desc": "A bigger pit — a much longer reach" }, { "cost": 450, "smokeTargetsAdd": 1, "desc": "Two racks — smokes a second dish at the same time" } ] }
       }
     },
     "ranch": {
       "name": "The Syrup Slinger", "blurb": "Slings maple-syrup globs that glue dishes to the belt — a long, sticky drag (no damage)",
-      "cost": 300, "range": 120, "damage": 0, "cooldown": 1.6, "behavior": "single", "glueFactor": 0.25, "glueDur": 3.0,
+      "cost": 300, "range": 120, "damage": 0, "cooldown": 1.6, "behavior": "single", "glueFactor": 0.25, "glueDur": 2.5,
       "upgrades": {
-        "quickPour": { "name": "Quick Pour",     "tiers": [ { "cost": 250, "cooldownMul": 0.7, "desc": "Warms the bottle — globs pour noticeably faster" }, { "cost": 550, "trailRadius": 22, "trailLife": 4, "trailCap": 3, "desc": "Syrup Trail — a glued dish that's eaten leaves a puddle that glues passers-by" } ] },
-        "bigBottle": { "name": "The Big Bottle", "tiers": [ { "cost": 250, "range": 30, "desc": "A longer pour — more reach" }, { "cost": 600, "glueTargetsAdd": 2, "desc": "One big squeeze — globs three dishes at once" } ] }
+        "quickPour": { "name": "Quick Pour",     "tiers": [ { "cost": 250, "cooldownMul": 0.45, "desc": "Warms the bottle — globs pour much faster" }, { "cost": 550, "trailRadius": 34, "trailLife": 8, "trailCap": 3, "desc": "Syrup Trail — a glued dish that's eaten leaves a puddle that glues passers-by" } ] },
+        "bigBottle": { "name": "The Big Bottle", "tiers": [ { "cost": 250, "range": 30, "desc": "A longer pour — more reach" }, { "cost": 650, "glueTargetsAdd": 2, "desc": "One big squeeze — globs three dishes at once" } ] }
       }
     },
     "sample": {
       "name": "The Sample Lady", "blurb": "Pure support: nearby customers attack faster and their upgrades cost less",
-      "cost": 150, "range": 100, "damage": 0, "cooldown": 1.4, "behavior": "support", "supportHaste": 0.94, "supportDiscount": 0.10,
+      "cost": 150, "range": 100, "damage": 0, "cooldown": 1.4, "behavior": "support", "supportHaste": 0.85, "supportDiscount": 0.10,
       "upgrades": {
-        "happyHour":  { "name": "Happy Hour",   "tiers": [ { "cost": 150, "range": 30, "desc": "Word spreads — the friendly aura reaches further" }, { "cost": 300, "supportDamage": 1.08, "desc": "Everyone's in a good mood — customers in the aura bite harder" } ] },
-        "onTheHouse": { "name": "On the House", "tiers": [ { "cost": 150, "tagPeriod": 5, "tagBonus": 15, "tagDur": 6, "desc": "Every few seconds, flags a dish — it tips extra when eaten" }, { "cost": 300, "supportHaste": 0.88, "desc": "Fresh coffee all round — the aura speed-up gets stronger" } ] }
+        "happyHour":  { "name": "Happy Hour",   "tiers": [ { "cost": 150, "range": 30, "desc": "Word spreads — the friendly aura reaches further" }, { "cost": 300, "supportDamage": 1.15, "desc": "Everyone's in a good mood — customers in the aura bite harder" } ] },
+        "onTheHouse": { "name": "On the House", "tiers": [ { "cost": 150, "tagPeriod": 4, "tagBonus": 20, "tagDur": 6, "desc": "Every few seconds, flags a dish — it tips extra when eaten" }, { "cost": 300, "supportHaste": 0.75, "desc": "Fresh coffee all round — the aura speed-up gets stronger" } ] }
       }
     }
   },
