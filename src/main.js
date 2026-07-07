@@ -47,7 +47,8 @@ window.__uiRects = function () {
   add("pause: save & quit", { x: pm.saveQuit.x + BOARD.x, y: pm.saveQuit.y, w: pm.saveQuit.w, h: pm.saveQuit.h });
   pm.autoStart.forEach((o) => add("pause: auto-start " + o.label, { x: o.rect.x + BOARD.x, y: o.rect.y, w: o.rect.w, h: o.rect.h }));
   shopButtonRects().forEach((b, i) => add("hub: shop " + (i + 1), b.rect));
-  for (let i = 0; i < 5; i++) add("hub card " + (i + 1), hubCardRect(i));
+  const hubN = hubSlotCount();   // real hub deck grid (10 slots: 9 unlocked + locked sniper)
+  for (let i = 0; i < hubN; i++) add("hub card " + (i + 1) + "/" + hubN, hubCardRect(i, hubN));
   if (console.table) console.table(rows);
   return { scale: +s.toFixed(3), canvasCssW: +cr.width.toFixed(1), canvasCssH: +cr.height.toFixed(1),
            allPass: rows.every((r) => r.pass), rows };
@@ -110,12 +111,15 @@ function setupInput(canvas) {
 
     // Hub / menu (design space).
     if (game.phase === "menu") {
+      // The tap-for-details popover is a modal: while it's open, any tap dismisses
+      // it (and nothing behind it fires).
+      if (hubOpen) { closeHubDetails(); audio.build(); return; }
       // Continue — resume the saved run (checked first so nothing shadows it).
       if (hasSave() && inRect(p, RESUME_RUN_BTN)) { if (restoreRun()) gamePaused = false; return; }
       for (const s of shopButtonRects()) if (inRect(p, s.rect)) { tryBuyShop(s.item); return; }
-      // Tap a regular's card → toggle its upgrade-path details view.
-      const deck = deckTypes();
-      for (let i = 0; i < deck.length; i++) if (inRect(p, hubCardRect(i))) { toggleHubCard(deck[i].id); audio.build(); return; }
+      // Tap a regular's card → open its upgrade-path details popover.
+      const deck = deckTypes(), slots = hubSlotCount();
+      for (let i = 0; i < deck.length; i++) if (inRect(p, hubCardRect(i, slots))) { toggleHubCard(deck[i].id); audio.build(); return; }
       if (pickableMaps().length > 1 && inRect(p, MAP_BTN)) {
         // Cycle to the next NON-RETIRED map (the picker lists only these), remember
         // it, and load it so the hub label + the coming run reflect the choice.

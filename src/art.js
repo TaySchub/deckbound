@@ -1404,6 +1404,24 @@ function fitText(ctx, text, maxWidth) {
   return s + "…";
 }
 
+// Fit `text` into up to maxLines lines within maxWidth by SHRINKING the font
+// (bold system-ui) from basePx down to minPx until it wraps cleanly without any
+// ellipsis — so a tower NAME always renders in full (Roster Growth: names like
+// "Short-Order Cook" no longer truncate). Returns { lines, px }; the caller sets
+// the font from px before drawing. Only the pathological worst case (a single
+// word longer than the card even at minPx) falls back to wrapLabel's ellipsis.
+function fitWrappedName(ctx, text, maxWidth, maxLines, basePx, minPx) {
+  for (let px = basePx; px >= minPx; px -= 0.5) {
+    ctx.font = "bold " + px + "px system-ui, sans-serif";
+    const lines = wrapLabel(ctx, text, maxWidth, maxLines);
+    if (lines.length <= maxLines && lines.every((l) => l.indexOf("…") < 0 && ctx.measureText(l).width <= maxWidth)) {
+      return { lines, px };
+    }
+  }
+  ctx.font = "bold " + minPx + "px system-ui, sans-serif";
+  return { lines: wrapLabel(ctx, text, maxWidth, maxLines), px: minPx };
+}
+
 // Word-wrap `text` into up to maxLines lines that each fit maxWidth (font
 // pre-set). A single over-long word (or an overflowing last line) is ellipsized
 // with fitText. Lets the taller hub cards show full multi-word names.
