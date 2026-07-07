@@ -780,7 +780,7 @@ function drawTowers(ctx) {
     }
     ctx.globalAlpha = Math.min(0.6, glowStrength); ctx.fillStyle = def.glow;
     ctx.beginPath(); ctx.arc(t.x + ox, t.y + oy, radius + 10, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-    const justFired = t.cdTimer > t.cooldown - 0.14;
+    const justFired = t.cdTimer > towerCooldown(t) - 0.14;
     // Big Appetite's mouth snaps shut around the peak of the lunge.
     let bite = 0;
     if (t.typeId === "cannon" && t.lungeTimer > 0) { const pr = 1 - t.lungeTimer / LUNGE_DUR; bite = Math.max(0, 1 - Math.abs(pr - 0.55) / 0.3); }
@@ -791,7 +791,7 @@ function drawTowers(ctx) {
     for (let i = 0; i < MAX_TIER; i++) { ctx.beginPath(); ctx.arc(t.x - 4 + i * 8, t.y - radius - 16, 3, 0, Math.PI * 2); ctx.fillStyle = i < t.upgradeTier ? COLOR.upgradeSpark : "#39404f"; ctx.fill(); }
     if (distance(boardPtr(), t) <= 18 && t.upgradeTier < MAX_TIER) {
       let cheapest = Infinity;
-      for (const pp of towerPaths(t.typeId)) { const nt = nextTier(t, pp.id); if (nt && nt.cost < cheapest) cheapest = nt.cost; }
+      for (const pp of towerPaths(t.typeId)) { const nt = nextTier(t, pp.id); if (nt && tierCostFor(t, nt) < cheapest) cheapest = tierCostFor(t, nt); }
       if (cheapest < Infinity) {
         ctx.fillStyle = COLOR.ink; ctx.font = "bold 10px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
         ctx.fillText("upgrade", t.x, t.y - radius - 26);
@@ -1005,7 +1005,8 @@ function drawTowerSheet(ctx) {
     const lockedOut = t.upgradePath !== null && !committed;
     const maxed = committed && t.upgradeTier >= MAX_TIER;
     const tier = nextTier(t, pb.id);                       // null if maxed or locked out
-    const afford = tier && game.currency >= tier.cost;
+    const price = tier ? tierCostFor(t, tier) : 0;         // the REAL price (support discount applied)
+    const afford = tier && game.currency >= price;
     const hov = inRect(game.pointer, r) && !lockedOut && !maxed;
     let bg, border;
     if (lockedOut) { bg = "#161a22"; border = "#242a36"; }
@@ -1025,7 +1026,7 @@ function drawTowerSheet(ctx) {
     } else if (maxed) {
       ctx.fillStyle = COLOR.good; ctx.textAlign = "right"; ctx.fillText("MAX", r.x + r.w - 10, r.y + 19);
     } else {
-      drawCostChip(ctx, r.x + r.w - 10, r.y + 14, tier.cost, afford, 16, "right");
+      drawCostChip(ctx, r.x + r.w - 10, r.y + 14, price, afford, 16, "right");
     }
     // Description — what buying NEXT does; a maxed committed path shows its current
     // effect; a locked-out path shows what it would have done (dimmed by the row).
