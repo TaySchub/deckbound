@@ -5,6 +5,37 @@ Format is deliberately simple and plain-language.
 
 ## [Unreleased]
 
+### Changed
+- **The game is now Blue-Plate Special, with a real main menu** (Issue #96;
+  Implementer + Art hats; display + shell only — zero gameplay changes, the
+  difficulty gauge and both smokes byte-identical to main, the only sim-output
+  diff being the flagship map's printed display name).
+  - **Display rename** (developer-ratified 2026-07-07): page title/header,
+    README (+ repo/Pages URLs to TaySchub/blueplate), SETUP-AND-LAUNCH,
+    harness titles, GAME_BRIEF header (the one authorized law edit), and
+    display-ish doc mentions. The flagship map's display name became **"The
+    Original"** (the title owns the name now). FROZEN by design: all internal
+    ids (map id `blueplate`, tower/enemy/path ids), the `deckbound.*`
+    localStorage keys (renaming loses saves), tool flags, CI/branch names,
+    `src/engine.js` entirely, and PROJECT.md (law; edit not authorized).
+  - **The wordmark**: an enamel diner sign drawn vector in art.js
+    (`drawWordmark`) — cream board, navy rim, teal neon edge-glow, the
+    blue-plate-with-fork badge, "SPECIAL" on a red ribbon, mustard star
+    sparks. Palette promoted to named `COLOR.sign*` entries (data.js).
+  - **The menu system**: the single hub became three diner-styled screens
+    (shell `menuScreen` state; the engine's phase "menu" untouched). **MAIN**:
+    the wordmark + Continue — Wave N (above Play, with the saved map's name) +
+    Open for Service (keeps the discards-save hint) + Towers + Shop + mute.
+    **TOWERS**: a scrollable codex (the rail's drag/wheel scroll pattern, one
+    geometry source) listing all 10 towers — portrait, name, cost, role blurb,
+    BOTH paths with the #94 tier descriptions verbatim and tier costs; the
+    unbought Slurper shows locked with its shop hint. **SHOP**: the Golden
+    Forks balance + the same three items/purchase logic on their own page.
+    Every interactive rect ≥44 CSS px at ~844×390 (audited: worst menu rect
+    45.4). Save & Continue drilled end-to-end through the new menu (hard-close
+    mid-wave → Continue — Wave 1 → exact wave-start board restored).
+
+
 ### Fixed
 - **Chrome polish for the 10-tower roster** (Issue #94, display-only — zero numeric
   or mechanic changes; the gate and both smokes are byte-identical to main). Four

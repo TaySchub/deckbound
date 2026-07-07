@@ -40,15 +40,21 @@ window.__uiRects = function () {
   sh.paths.forEach((p) => add("path: " + p.name, p.rect));
   add("sell", sh.sell.rect); add("sheet close X", sh.close);
   add("start wave", { x: START_BTN.x + BOARD.x, y: START_BTN.y, w: START_BTN.w, h: START_BTN.h });
-  add("hub: play", PLAY_BTN); add("hub: map picker", MAP_BTN);
-  add("hub: continue", RESUME_RUN_BTN);   // Save & Continue (Issue #83)
+  // Menu system (Issue #96): audit the MAIN buttons in their with-save layout
+  // (Continue present = the tighter stack), the Back button, the shop rows, and
+  // a codex entry as the scroll-target proxy.
+  add("menu: continue (slot)", { x: (DESIGN.w - 300) / 2, y: 238, w: 300, h: 58 });
+  add("menu: play", { x: (DESIGN.w - 300) / 2, y: 302, w: 300, h: 58 });
+  add("menu: towers", { x: (DESIGN.w - 300) / 2, y: 368, w: 146, h: 58 });
+  add("menu: shop", { x: (DESIGN.w - 300) / 2 + 154, y: 368, w: 146, h: 58 });
+  add("menu: back", MENU_BACK_BTN);
+  add("menu: map picker", MAP_BTN);
+  shopScreenRects().forEach((b, i) => add("shop item " + (i + 1), b.rect));
+  add("codex entry (proxy)", codexEntryRect(0));
   const pm = pauseMenuRects();             // board-space → shift by BOARD.x for the CSS audit
   add("pause: resume", { x: pm.resume.x + BOARD.x, y: pm.resume.y, w: pm.resume.w, h: pm.resume.h });
   add("pause: save & quit", { x: pm.saveQuit.x + BOARD.x, y: pm.saveQuit.y, w: pm.saveQuit.w, h: pm.saveQuit.h });
   pm.autoStart.forEach((o) => add("pause: auto-start " + o.label, { x: o.rect.x + BOARD.x, y: o.rect.y, w: o.rect.w, h: o.rect.h }));
-  shopButtonRects().forEach((b, i) => add("hub: shop " + (i + 1), b.rect));
-  const hubN = hubSlotCount();   // real hub deck grid (10 slots: 9 unlocked + locked sniper)
-  for (let i = 0; i < hubN; i++) add("hub card " + (i + 1) + "/" + hubN, hubCardRect(i, hubN));
   if (console.table) console.table(rows);
   return { scale: +s.toFixed(3), canvasCssW: +cr.width.toFixed(1), canvasCssH: +cr.height.toFixed(1),
            allPass: rows.every((r) => r.pass), rows };
@@ -83,6 +89,7 @@ function setupInput(canvas) {
   // In-progress rail drag-scroll: { startY, startScroll, moved } while a pointer is
   // down in the rail card zone, else null. Resolves to a tap (select) or a scroll.
   let railDrag = null;
+  let codexDrag = null;   // Towers-codex drag-scroll (Issue #96) — the rail's pattern
 
   const onDown = (clientX, clientY) => {
     audio.unlock();
@@ -105,37 +112,45 @@ function setupInput(canvas) {
         if (inRect(b, o.rect)) { META.autoStart = o.value; saveMeta(); audio.build(); return; }
       }
       if (inRect(b, pm.resume)) { gamePaused = false; audio.build(); return; }
-      if (inRect(b, pm.saveQuit)) { gamePaused = false; game.phase = "menu"; audio.build(); return; }
+      if (inRect(b, pm.saveQuit)) { gamePaused = false; game.phase = "menu"; setMenuScreen("main"); audio.build(); return; }
       if (inRect(b, pm.panel)) return;
     }
 
-    // Hub / menu (design space).
+    // Menu system (Issue #96, design space): route by the shell's menuScreen.
     if (game.phase === "menu") {
-      // The tap-for-details popover is a modal: while it's open, any tap dismisses
-      // it (and nothing behind it fires).
-      if (hubOpen) { closeHubDetails(); audio.build(); return; }
-      // Continue — resume the saved run (checked first so nothing shadows it).
-      if (hasSave() && inRect(p, RESUME_RUN_BTN)) { if (restoreRun()) gamePaused = false; return; }
-      for (const s of shopButtonRects()) if (inRect(p, s.rect)) { tryBuyShop(s.item); return; }
-      // Tap a regular's card → open its upgrade-path details popover.
-      const deck = deckTypes(), slots = hubSlotCount();
-      for (let i = 0; i < deck.length; i++) if (inRect(p, hubCardRect(i, slots))) { toggleHubCard(deck[i].id); audio.build(); return; }
+      if (menuScreen === "towers") {
+        if (inRect(p, MENU_BACK_BTN)) { setMenuScreen("main"); audio.build(); return; }
+        // A press in the codex zone starts a drag-scroll (the rail's drag shape;
+        // codex entries have no tap action, so a plain tap is a no-op).
+        if (p.y >= CODEX.top && codexScrollable()) { codexDrag = { startY: p.y, startScroll: codexScroll }; }
+        return;
+      }
+      if (menuScreen === "shop") {
+        if (inRect(p, MENU_BACK_BTN)) { setMenuScreen("main"); audio.build(); return; }
+        for (const s of shopScreenRects()) if (inRect(p, s.rect)) { tryBuyShop(s.item); return; }
+        return;
+      }
+      // MAIN screen. Continue first so nothing shadows it (Issue #83 flow).
+      const m = menuMainRects();
+      if (m.resume && inRect(p, m.resume)) { if (restoreRun()) gamePaused = false; return; }
+      if (inRect(p, m.play)) { startRun(); return; }
+      if (inRect(p, m.towers)) { setMenuScreen("towers"); audio.build(); return; }
+      if (inRect(p, m.shop)) { setMenuScreen("shop"); audio.build(); return; }
       if (pickableMaps().length > 1 && inRect(p, MAP_BTN)) {
         // Cycle to the next NON-RETIRED map (the picker lists only these), remember
-        // it, and load it so the hub label + the coming run reflect the choice.
+        // it, and load it so the label + the coming run reflect the choice.
         const picks = pickableMaps();
-        const i = picks.findIndex((m) => m.id === MAP.id);
+        const i = picks.findIndex((mp) => mp.id === MAP.id);
         const next = picks[(i + 1) % picks.length];
         loadMap(next.id); META.mapId = next.id; saveMeta();
         audio.build(); return;
       }
-      if (inRect(p, PLAY_BTN)) { startRun(); return; }
       return;
     }
 
-    // Run summary → back to hub (design space).
+    // Run summary → back to the main menu screen (design space).
     if (game.phase === "lost") {
-      if (inRect(p, CONTINUE_BTN)) { game.phase = "menu"; }
+      if (inRect(p, CONTINUE_BTN)) { game.phase = "menu"; setMenuScreen("main"); }
       return;
     }
 
@@ -186,10 +201,12 @@ function setupInput(canvas) {
       if (Math.abs(dy) > DRAG_THRESHOLD) railDrag.moved = true;
       railDragTo(railDrag.startScroll, dy);
     }
+    if (codexDrag) codexDragTo(codexDrag.startScroll, game.pointer.y - codexDrag.startY);
   };
   // Pointer up: resolve a rail drag-or-tap. If it didn't scroll, it's a tap →
   // select the card under the release point (and close any open sheet).
   const onUp = (clientX, clientY) => {
+    codexDrag = null;   // a codex drag just ends — entries have no tap action
     if (!railDrag) return;
     const scrolled = railDrag.moved;
     const p = toDesign(clientX, clientY);
@@ -205,10 +222,15 @@ function setupInput(canvas) {
   canvas.addEventListener("mousemove", (e) => onMove(e.clientX, e.clientY));
   window.addEventListener("mouseup", (e) => onUp(e.clientX, e.clientY));
   canvas.addEventListener("touchstart", (e) => { if (e.touches[0]) { e.preventDefault(); onDown(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
-  canvas.addEventListener("touchmove", (e) => { if (e.touches[0]) { if (railDrag) e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
+  canvas.addEventListener("touchmove", (e) => { if (e.touches[0]) { if (railDrag || codexDrag) e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
   canvas.addEventListener("touchend", (e) => { const t = e.changedTouches[0]; if (t) onUp(t.clientX, t.clientY); });
-  // Desktop wheel over the rail scrolls the deck (only when it overflows).
-  canvas.addEventListener("wheel", (e) => { const p = toDesign(e.clientX, e.clientY); if (p.x <= RAIL.w && railScrollable()) { e.preventDefault(); railWheel(e.deltaY); } }, { passive: false });
+  // Desktop wheel: over the rail it scrolls the deck; on the Towers codex it
+  // scrolls the codex (only when they overflow).
+  canvas.addEventListener("wheel", (e) => {
+    const p = toDesign(e.clientX, e.clientY);
+    if (game.phase === "menu" && menuScreen === "towers" && codexScrollable()) { e.preventDefault(); codexWheel(e.deltaY); return; }
+    if (p.x <= RAIL.w && railScrollable()) { e.preventDefault(); railWheel(e.deltaY); }
+  }, { passive: false });
 
   // Keyboard: P or Space toggles pause. Skipped while typing in a form field
   // (the dev harness has inputs on the same page as the game).

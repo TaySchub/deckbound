@@ -58,6 +58,15 @@ const COLOR = {
   railBg: "#12161f",        // left tower-rail surface (seated a touch deeper than panel)
   sheetBg: "#0e1420",       // right upgrade-sheet surface (reads as an overlay above the board)
   sheetScrim: "rgba(8,10,15,0.5)",  // soft dim over the board's right edge behind the open sheet
+  // Diner-sign palette (Issue #96) — the Blue-Plate map's sanctioned accents
+  // promoted to NAMED chrome entries for the wordmark + the colorful menu
+  // screens. Same discipline as the #71/#79 chrome colors: the remaster
+  // re-points these here, never scattered literals.
+  signRed: "#E8473F",       // enamel red — Play, ribbons, warm accents
+  signTeal: "#2FB4A6",      // diner teal — Continue, neon sign edge
+  signYellow: "#FFC64B",    // mustard yellow — Towers, stars, highlights
+  signCream: "#F2E6C6",     // enamel cream — sign faces, light text on warm fills
+  signNavy: "#3B4552",      // deep navy — sign lettering + dark text on cream
 };
 
 /* Difficulty & economy numbers come from data/balance.json, loaded as

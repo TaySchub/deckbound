@@ -27,13 +27,10 @@ const START_BTN = { x: 466, y: 388, w: 214, h: 56 };   // "Send/Call Wave", seat
 const RAIL_CARD = { w: RAIL.w - 16, h: 66, gap: 6 };   // vertical tower-deck cards (taller so a 2-line name + portrait both fit; the rail scrolls)
 const RAIL_TOP = 128;                                  // rail card zone start (below the stacked pause/mute)
 const SHEET_X = DESIGN.w - SHEET.w;                    // left edge of the slide-in upgrade sheet
-const CONTINUE_BTN = { x: DESIGN.w / 2 - 100, y: DESIGN.h / 2 + 40, w: 200, h: 54 };   // run-summary → hub
-const PLAY_BTN = { x: DESIGN.w / 2 - 110, y: 388, w: 220, h: 56 };
-// Hub "Continue — Wave N": resume the saved run, shown above Open for Service
-// only when a checkpoint exists (Issue #83). 56px tall so it clears 44 CSS px at
-// ~844x390 phone scale (canvas ~756 CSS, scale ~0.84 -> 56*0.84 = 47 CSS).
-const RESUME_RUN_BTN = { x: DESIGN.w / 2 - 130, y: 298, w: 260, h: 56 };
-const MAP_BTN = { x: 24, y: 390, w: 196, h: 54 };   // hub map picker, bottom-left (shown only with 2+ maps)
+const CONTINUE_BTN = { x: DESIGN.w / 2 - 100, y: DESIGN.h / 2 + 40, w: 200, h: 54 };   // run-summary → menu
+// (The old hub PLAY_BTN/RESUME_RUN_BTN constants retired with the menu system —
+// the MAIN screen's geometry lives in menuMainRects(), Issue #96.)
+const MAP_BTN = { x: 24, y: 390, w: 196, h: 54 };   // menu map picker, bottom-left (shown only with 2+ maps)
 
 // game.pointer is DESIGN coords (main.js maps client->design). Board hovers and
 // board hit-tests apply the inverse of the board translate through this.
@@ -159,205 +156,252 @@ function render() {
   if (game.phase === "lost") drawSummary(ctx);
 }
 
-/* ---- Hub / menu screen ---- */
+/* =========================================================================
+   MENU SYSTEM (Issue #96) — the single hub became three screens. This is
+   SHELL state only: the engine's phase "menu" is unchanged; `menuScreen`
+   lives here and main.js routes input by it. Screens: "main" (wordmark +
+   Continue/Play/Towers/Shop) · "towers" (the scrollable codex) · "shop"
+   (Golden Forks page). Every interactive rect is ≥53 design px in its
+   smaller dimension (≥44 CSS px at ~844×390).
+   ========================================================================= */
 
-const HUB_SHOP_X = 640;                       // shop column (right side of the widened hub)
-function shopButtonRects() {
+let menuScreen = "main";
+function setMenuScreen(s) { menuScreen = s; }
+
+// Shared "← Back" button on the towers/shop screens (top-left).
+const MENU_BACK_BTN = { x: 16, y: 10, w: 130, h: 56 };
+
+// MAIN screen geometry — ONE source for draw + hit-testing. Continue (only
+// when a save exists) sits ABOVE Play; Towers + Shop share the bottom row.
+function menuMainRects() {
+  const save = hasSave();
+  const w = 300, x = (DESIGN.w - w) / 2;
+  const playY = save ? 302 : 268;
+  return {
+    save,
+    resume: save ? { x, y: 238, w, h: 58 } : null,
+    play: { x, y: playY, w, h: 58 },
+    towers: { x, y: playY + 66, w: 146, h: 58 },
+    shop: { x: x + w - 146, y: playY + 66, w: 146, h: 58 },
+  };
+}
+
+// SHOP screen item rows (same SHOP items + tryBuyShop logic, relocated).
+function shopScreenRects() {
   const out = [];
-  const x = HUB_SHOP_X, w = DESIGN.w - HUB_SHOP_X - 24, h = 54, gap = 12;
-  let y = 152;
+  const w = 560, x = (DESIGN.w - w) / 2, h = 64, gap = 14;
+  let y = 150;
   for (const item of SHOP) { out.push({ item, rect: { x, y, w, h } }); y += h + gap; }
   return out;
 }
 
-// A regular's collection card on the hub — roomier than the rail card, showing
-// the role blurb, and tappable to expand its upgrade-path details. `hubOpen`
-// holds the expanded tower id (set by input's toggleHubCard). Geometry shared
-// by draw + hit-testing.
-let hubOpen = null;
-function toggleHubCard(id) { hubOpen = hubOpen === id ? null : id; }
-function closeHubDetails() { hubOpen = null; }
-function hubSlotCount() { return deckTypes().length + (META.unlocked.includes("sniper") ? 0 : 1); }
-// Hub deck grid — wraps to 2 rows so 10 cards (headroom for ~12) fit the hub-left
-// area without overflowing or truncating names. ONE source shared by draw +
-// hit-testing (the cardRect discipline).
-function hubGrid(n) {
-  const gx = 40, gw = 584;                 // deck area, left of the shop column
-  const rows = n > 5 ? 2 : 1;
-  const cols = Math.ceil(n / rows);
-  const gap = 8, rowGap = 10, top = 146;
-  const cw = (gw - (cols - 1) * gap) / cols;
-  const ch = rows === 1 ? 122 : 66;        // 2-row cards are compact (name+portrait+cost); the blurb/paths move to the tap popover
-  return { gx, gw, rows, cols, gap, rowGap, top, cw, ch };
-}
-function hubCardRect(i, n) {
-  const g = hubGrid(n || hubSlotCount());
-  const col = i % g.cols, row = (i / g.cols) | 0;
-  return { x: g.gx + col * (g.cw + g.gap), y: g.top + row * (g.ch + g.rowGap), w: g.cw, h: g.ch };
+// A warm diner-styled menu button: enamel fill, cream border, navy or cream
+// label. One shared drawer so all three screens speak the same language.
+function drawDinerButton(ctx, rect, label, fill, textCol, hover, sub) {
+  ctx.save();
+  ctx.fillStyle = fill; roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 14); ctx.fill();
+  if (hover) { ctx.fillStyle = "rgba(255,255,255,0.12)"; roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 14); ctx.fill(); }
+  ctx.strokeStyle = COLOR.signCream; ctx.lineWidth = 2; roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 14); ctx.stroke();
+  ctx.strokeStyle = "rgba(11,14,20,0.55)"; ctx.lineWidth = 1;
+  roundRect(ctx, rect.x - 1.5, rect.y - 1.5, rect.w + 3, rect.h + 3, 15); ctx.stroke();
+  ctx.fillStyle = textCol; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "bold " + (sub ? 15 : 17) + "px system-ui, sans-serif";
+  ctx.fillText(label, rect.x + rect.w / 2, rect.y + rect.h / 2 - (sub ? 8 : 0));
+  if (sub) {
+    ctx.font = "11px system-ui, sans-serif"; ctx.globalAlpha = 0.85;
+    ctx.fillText(sub, rect.x + rect.w / 2, rect.y + rect.h / 2 + 11);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.restore();
 }
 
-// The tap-for-details popover: a MODAL card (drawn last, over the hub) showing the
-// tapped regular's blurb and BOTH upgrade paths with each tier's plain-language
-// description (the same strings the in-run upgrade sheet uses, from balance.json).
-// Any tap dismisses it (handled in main.js). Roomy so 10 towers don't need to
-// crowd the details inline.
-function drawHubDetails(ctx, def) {
-  ctx.fillStyle = "rgba(8,10,15,0.6)"; ctx.fillRect(0, 0, DESIGN.w, DESIGN.h);   // scrim
-  const w = 620, h = 262, x = (DESIGN.w - w) / 2, y = 92;
-  ctx.fillStyle = COLOR.panel; roundRect(ctx, x, y, w, h, 12); ctx.fill();
-  ctx.strokeStyle = def.color; ctx.lineWidth = 2; roundRect(ctx, x, y, w, h, 12); ctx.stroke();
-  // Header: portrait + name + blurb.
-  drawSoftShadow(ctx, x + 34, y + 40, 20, 6, COLOR.unitShadow);
-  drawCustomer(ctx, def.id, x + 34, y + 34, 20, def.color);
-  ctx.fillStyle = COLOR.ink; ctx.font = "bold 16px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  ctx.fillText(def.name, x + 66, y + 26);
+// The menu backdrop: deep navy with a low-contrast checker — warmer than the
+// old flat grid, and it lets the enamel sign pop.
+function drawMenuBackdrop(ctx) {
+  ctx.fillStyle = COLOR.signNavy; ctx.fillRect(0, 0, DESIGN.w, DESIGN.h);
+  ctx.fillStyle = "rgba(0,0,0,0.14)";
+  const tile = 45;
+  for (let gy = 0; gy < DESIGN.h; gy += tile)
+    for (let gx = 0; gx < DESIGN.w; gx += tile)
+      if (((gx / tile) + (gy / tile)) & 1) ctx.fillRect(gx, gy, tile, tile);
+}
+
+function drawMenuBack(ctx) {
+  drawDinerButton(ctx, MENU_BACK_BTN, "←  Back", COLOR.signNavy, COLOR.signCream, inRect(game.pointer, MENU_BACK_BTN));
+}
+
+/* ---- TOWERS screen: the codex — a scrollable page listing ALL towers with
+   both upgrade paths, their tier descriptions (#94's strings, verbatim from
+   balance.json), and tier costs. Reuses the rail's scroll pattern: one layout
+   source shared by draw + hit-testing, drag/swipe + wheel, a clamp, a thumb. */
+
+let codexScroll = 0;
+const CODEX = { top: 78, bottom: 8, x: 24, entryH: 150, gap: 10 };
+function codexLayout() {
+  const n = TOWER_TYPES.length;
+  const zoneTop = CODEX.top, zoneH = DESIGN.h - CODEX.top - CODEX.bottom;
+  const contentH = n * CODEX.entryH + (n - 1) * CODEX.gap;
+  return { n, zoneTop, zoneH, zoneBottom: zoneTop + zoneH, step: CODEX.entryH + CODEX.gap,
+           contentH, scrollable: contentH > zoneH, maxScroll: Math.max(0, contentH - zoneH) };
+}
+function clampCodexScroll() { codexScroll = Math.max(0, Math.min(codexScroll, codexLayout().maxScroll)); }
+function codexScrollable() { return codexLayout().scrollable; }
+function codexDragTo(startScroll, deltaY) { codexScroll = startScroll - deltaY; clampCodexScroll(); }
+function codexWheel(deltaY) { codexScroll += deltaY; clampCodexScroll(); }
+function codexEntryRect(i) {
+  clampCodexScroll();
+  const L = codexLayout();
+  return { x: CODEX.x, y: L.zoneTop - codexScroll + i * L.step, w: DESIGN.w - CODEX.x * 2, h: CODEX.entryH };
+}
+
+// One codex entry: header (portrait · name · cost chip · role blurb) + the two
+// upgrade-path columns with per-tier descriptions and costs. A locked tower
+// (the unbought Slurper) draws dimmed with its shop hint.
+function drawCodexEntry(ctx, def, r, locked) {
+  ctx.save();
+  ctx.fillStyle = COLOR.ctrlBg; roundRect(ctx, r.x, r.y, r.w, r.h, 10); ctx.fill();
+  ctx.strokeStyle = def.color; ctx.globalAlpha = locked ? 0.4 : 0.9; ctx.lineWidth = 2;
+  roundRect(ctx, r.x, r.y, r.w, r.h, 10); ctx.stroke(); ctx.globalAlpha = 1;
+  if (locked) ctx.globalAlpha = 0.55;
+  // Header row.
+  drawSoftShadow(ctx, r.x + 36, r.y + 36, 18, 5, COLOR.unitShadow);
+  drawCustomer(ctx, def.id, r.x + 36, r.y + 30, 17, def.color);
+  ctx.fillStyle = COLOR.ink; ctx.font = "bold 15px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(def.name, r.x + 68, r.y + 24);
+  const nameW = ctx.measureText(def.name).width;
+  drawCostChip(ctx, r.x + 68 + nameW + 12, r.y + 19, def.cost, true, 16, "left");
   ctx.fillStyle = COLOR.muted; ctx.font = "11px system-ui, sans-serif";
-  wrapLabel(ctx, def.blurb, w - 78, 2).forEach((ln, i) => ctx.fillText(ln, x + 66, y + 42 + i * 13));
-  ctx.fillStyle = COLOR.gold; ctx.font = "bold 10px system-ui, sans-serif";
-  ctx.fillText("UPGRADE PATHS", x + 18, y + 78);
-  // Two path columns, each with tier-1 and tier-2 descriptions.
-  const paths = towerPaths(def.id), colGap = 16, pw = (w - 36 - colGap) / 2;
+  wrapLabel(ctx, def.blurb, r.w - 300, 2).forEach((ln, i) => ctx.fillText(ln, r.x + 68, r.y + 40 + i * 13));
+  if (locked) {
+    ctx.globalAlpha = 1;
+    const shopItem = SHOP.find((s) => s.id === def.id);
+    drawLockIcon(ctx, r.x + r.w - 190, r.y + 26, 8, COLOR.signYellow);
+    ctx.fillStyle = COLOR.signYellow; ctx.font = "bold 11px system-ui, sans-serif"; ctx.textAlign = "left";
+    ctx.fillText("Locked — reserve their seat in the Shop" + (shopItem ? "  ✦ " + shopItem.cost : ""), r.x + r.w - 176, r.y + 30);
+    ctx.globalAlpha = 0.55;
+  }
+  // Two path columns (the in-run sheet's strings, verbatim).
+  const paths = towerPaths(def.id), colGap = 14, pw = (r.w - 28 - colGap) / 2, py = r.y + 60, ph = r.h - 68;
   paths.forEach((pp, i) => {
-    const px = x + 18 + i * (pw + colGap), py = y + 88, ph = h - (py - y) - 16;
-    ctx.fillStyle = COLOR.ctrlBg; roundRect(ctx, px, py, pw, ph, 8); ctx.fill();
-    ctx.strokeStyle = def.color; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; roundRect(ctx, px, py, pw, ph, 8); ctx.stroke(); ctx.globalAlpha = 1;
-    ctx.fillStyle = COLOR.ink; ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-    ctx.fillText(fitText(ctx, pp.name, pw - 16), px + 10, py + 20);
+    const px = r.x + 14 + i * (pw + colGap);
+    ctx.fillStyle = COLOR.chip; roundRect(ctx, px, py, pw, ph, 8); ctx.fill();
+    ctx.fillStyle = COLOR.ink; ctx.font = "bold 12px system-ui, sans-serif";
+    ctx.fillText(fitText(ctx, pp.name, pw - 130), px + 10, py + 17);
     pp.tiers.forEach((tier, ti) => {
-      const ty = py + 40 + ti * 44;
+      const ty = py + 34 + ti * 26;
       ctx.fillStyle = COLOR.gold; ctx.font = "bold 9px system-ui, sans-serif";
-      ctx.fillText("TIER " + (ti + 1), px + 10, ty);
+      ctx.fillText("T" + (ti + 1), px + 10, ty);
       ctx.fillStyle = COLOR.muted; ctx.font = "10px system-ui, sans-serif";
-      wrapLabel(ctx, tier.desc || "", pw - 20, 2).forEach((ln, li) => ctx.fillText(ln, px + 10, ty + 14 + li * 12));
+      ctx.fillText(fitText(ctx, tier.desc || "", pw - 100), px + 28, ty);
+      drawCostChip(ctx, px + pw - 10, ty - 4, tier.cost, true, 14, "right");
     });
   });
-  ctx.fillStyle = COLOR.muted; ctx.font = "9px system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("tap anywhere to close", DESIGN.w / 2, y + h - 6);
-  ctx.textAlign = "left";
+  ctx.restore();
+}
+
+function drawMenuTowers(ctx) {
+  const L = codexLayout();
+  // Clipped scroll zone.
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, L.zoneTop - 4, DESIGN.w, L.zoneH + 8); ctx.clip();
+  for (let i = 0; i < TOWER_TYPES.length; i++) {
+    const r = codexEntryRect(i);
+    if (r.y + r.h < L.zoneTop - 20 || r.y > L.zoneBottom + 20) continue;   // cull offscreen entries
+    const def = TOWER_TYPES[i];
+    drawCodexEntry(ctx, def, r, !META.unlocked.includes(def.id));
+  }
+  ctx.restore();
+  // Scroll thumb (right edge), the rail's convention.
+  if (L.scrollable) {
+    const frac = L.zoneH / L.contentH, thumbH = Math.max(28, L.zoneH * frac);
+    const thumbY = L.zoneTop + (codexScroll / L.maxScroll) * (L.zoneH - thumbH);
+    ctx.fillStyle = "rgba(242,230,198,0.28)";
+    roundRect(ctx, DESIGN.w - 10, thumbY, 5, thumbH, 2.5); ctx.fill();
+  }
+  drawMenuBack(ctx);
+  ctx.fillStyle = COLOR.signCream; ctx.font = "bold 20px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("The Regulars", DESIGN.w / 2, 38);
+  ctx.font = "11px system-ui, sans-serif"; ctx.fillStyle = "rgba(242,230,198,0.6)";
+  ctx.fillText("every customer, both upgrade paths — drag or scroll", DESIGN.w / 2, 60);
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+}
+
+/* ---- SHOP screen: the Golden Forks page (same items + purchase logic). ---- */
+
+function drawMenuShop(ctx) {
+  drawMenuBack(ctx);
+  ctx.fillStyle = COLOR.signCream; ctx.font = "bold 20px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("Golden Forks Shop", DESIGN.w / 2, 38);
+  ctx.fillStyle = COLOR.essence; ctx.font = "bold 18px system-ui, sans-serif";
+  ctx.fillText("✦ " + META.essence + " Golden Forks", DESIGN.w / 2, 70);
+  ctx.fillStyle = "rgba(242,230,198,0.6)"; ctx.font = "11px system-ui, sans-serif";
+  ctx.fillText("earned every run — spend them on permanent perks", DESIGN.w / 2, 94);
+  for (const b of shopScreenRects()) {
+    const owned = b.item.owned();
+    const affordable = META.essence >= b.item.cost;
+    const hover = inRect(game.pointer, b.rect) && !owned;
+    ctx.fillStyle = owned ? "#22301f" : COLOR.ctrlBg;
+    roundRect(ctx, b.rect.x, b.rect.y, b.rect.w, b.rect.h, 12); ctx.fill();
+    if (hover && affordable) { ctx.fillStyle = "rgba(255,255,255,0.08)"; roundRect(ctx, b.rect.x, b.rect.y, b.rect.w, b.rect.h, 12); ctx.fill(); }
+    ctx.strokeStyle = owned ? COLOR.good : (affordable ? COLOR.signYellow : COLOR.ctrlLine);
+    ctx.lineWidth = owned || affordable ? 2 : 1;
+    roundRect(ctx, b.rect.x, b.rect.y, b.rect.w, b.rect.h, 12); ctx.stroke();
+    ctx.fillStyle = COLOR.ink; ctx.font = "13px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(fitText(ctx, b.item.label, b.rect.w - 130), b.rect.x + 18, b.rect.y + b.rect.h / 2);
+    ctx.textAlign = "right"; ctx.font = "bold 14px system-ui, sans-serif";
+    if (owned) { ctx.fillStyle = COLOR.good; ctx.fillText("owned ✓", b.rect.x + b.rect.w - 18, b.rect.y + b.rect.h / 2); }
+    else { ctx.fillStyle = affordable ? COLOR.essence : COLOR.bad; ctx.fillText("✦ " + b.item.cost, b.rect.x + b.rect.w - 18, b.rect.y + b.rect.h / 2); }
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  }
+  if (META.bestWave > 0) {
+    ctx.fillStyle = "rgba(242,230,198,0.6)"; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("Best run:  Wave " + META.bestWave, DESIGN.w / 2, DESIGN.h - 16);
+    ctx.textAlign = "left";
+  }
+}
+
+/* ---- MAIN screen: the wordmark + the four big diner buttons. ---- */
+
+function drawMenuMain(ctx) {
+  // The design moment: the enamel sign, big and colorful.
+  drawWordmark(ctx, DESIGN.w / 2, 110, 460);
+  ctx.fillStyle = "rgba(242,230,198,0.75)"; ctx.font = "13px system-ui, sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("Seat the customers. Eat the food. Don't let dinner get away.", DESIGN.w / 2, 208);
+  // Golden Forks + best-wave, one quiet line.
+  ctx.fillStyle = COLOR.essence; ctx.font = "bold 13px system-ui, sans-serif";
+  const forks = "✦ " + META.essence + " Golden Forks";
+  const best = META.bestWave > 0 ? "      Best run:  Wave " + META.bestWave : "";
+  ctx.fillText(forks + best, DESIGN.w / 2, 228);
+
+  const m = menuMainRects();
+  if (m.resume) {
+    const save = hasSave();
+    const mapName = (MAPS.find((mp) => mp.id === save.mapId) || {}).name || "";
+    drawDinerButton(ctx, m.resume, "▶  Continue — Wave " + (save.waveIndex + 1), COLOR.signTeal, COLOR.signNavy,
+      inRect(game.pointer, m.resume), mapName);
+  }
+  drawDinerButton(ctx, m.play, "▶  Open for Service", COLOR.signRed, COLOR.signCream, inRect(game.pointer, m.play));
+  if (m.save) {   // starting fresh drops the checkpoint — say so
+    ctx.fillStyle = "rgba(242,230,198,0.55)"; ctx.font = "10px system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("(discards your saved run)", m.play.x + m.play.w + 78, m.play.y + m.play.h / 2 + 3);
+    ctx.textAlign = "left";
+  }
+  drawDinerButton(ctx, m.towers, "Towers", COLOR.signYellow, COLOR.signNavy, inRect(game.pointer, m.towers));
+  drawDinerButton(ctx, m.shop, "Shop", COLOR.signNavy, COLOR.signCream, inRect(game.pointer, m.shop));
+
+  // Map picker — unchanged logic; shown only when 2+ maps are pickable.
+  if (pickableMaps().length > 1) {
+    drawDinerButton(ctx, MAP_BTN, "Map:  " + MAP.name, COLOR.ctrlBg, COLOR.ink, inRect(game.pointer, MAP_BTN));
+  }
 }
 
 function drawMenu(ctx) {
-  ctx.fillStyle = COLOR.bg;
-  ctx.fillRect(0, 0, DESIGN.w, DESIGN.h);
-  ctx.strokeStyle = COLOR.grid; ctx.lineWidth = 1;
-  const gap = 50;
-  ctx.beginPath();
-  for (let x = gap; x < DESIGN.w; x += gap) { ctx.moveTo(x, 0); ctx.lineTo(x, DESIGN.h); }
-  for (let y = gap; y < DESIGN.h; y += gap) { ctx.moveTo(0, y); ctx.lineTo(DESIGN.w, y); }
-  ctx.stroke();
-
-  // Title.
-  ctx.textAlign = "left";
-  ctx.fillStyle = COLOR.ink;
-  ctx.font = "bold 32px system-ui, sans-serif";
-  ctx.fillText("Deckbound", 40, 54);
-  ctx.fillStyle = COLOR.muted;
-  ctx.font = "14px system-ui, sans-serif";
-  ctx.fillText("Seat the customers. Eat the food. Don't let dinner get away.", 42, 78);
-
-  // Golden Forks (meta currency) + best-wave record (survival is the score now).
-  ctx.fillStyle = COLOR.essence;
-  ctx.font = "bold 18px system-ui, sans-serif";
-  ctx.fillText("✦ Golden Forks: " + META.essence, 42, 110);
-  if (META.bestWave > 0) {
-    ctx.fillStyle = COLOR.muted; ctx.font = "13px system-ui, sans-serif";
-    ctx.fillText("Best run:  Wave " + META.bestWave, 250, 109);
-  }
-
-  // Your regulars — roomier, tappable cards (tap to expand upgrade-path details).
-  ctx.fillStyle = COLOR.ink;
-  ctx.font = "bold 14px system-ui, sans-serif";
-  ctx.fillText("Your regulars", 42, 134);
-  ctx.fillStyle = COLOR.muted; ctx.font = "11px system-ui, sans-serif";
-  ctx.fillText("tap a customer to see their upgrade paths", 158, 134);
-  const deck = deckTypes();
-  const slots = hubSlotCount();
-  for (let i = 0; i < deck.length; i++) {
-    const rr = hubCardRect(i, slots);
-    drawDeckCard(ctx, rr, deck[i], hubOpen === deck[i].id, inRect(game.pointer, rr), true, 16);   // one shared card language (rail + hub)
-  }
-  // Locked slot for the not-yet-unlocked Sniper — same grid cell, a vector padlock.
-  if (!META.unlocked.includes("sniper")) {
-    const r = hubCardRect(deck.length, slots);
-    ctx.fillStyle = COLOR.chip; roundRect(ctx, r.x, r.y, r.w, r.h, 6); ctx.fill();
-    ctx.strokeStyle = COLOR.ctrlLine; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
-    roundRect(ctx, r.x, r.y, r.w, r.h, 6); ctx.stroke(); ctx.setLineDash([]);
-    drawLockIcon(ctx, r.x + r.w / 2, r.y + r.h / 2 - 4, 10, COLOR.muted);
-    ctx.fillStyle = COLOR.muted; ctx.textAlign = "center"; ctx.font = "9px system-ui, sans-serif"; ctx.textBaseline = "alphabetic";
-    ctx.fillText("locked", r.x + r.w / 2, r.y + r.h - 8);
-    ctx.textAlign = "left";
-  }
-
-  // Shop (right column).
-  ctx.fillStyle = COLOR.ink; ctx.font = "bold 14px system-ui, sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("Golden Forks shop", HUB_SHOP_X, 134);
-  for (const b of shopButtonRects()) {
-    const owned = b.item.owned();
-    const affordable = META.essence >= b.item.cost;
-    const hover = inRect(game.pointer, b.rect);
-    ctx.fillStyle = owned ? "#1a241b" : (hover && affordable ? COLOR.ctrlSel : COLOR.ctrlBg);
-    roundRect(ctx, b.rect.x, b.rect.y, b.rect.w, b.rect.h, 8); ctx.fill();
-    ctx.strokeStyle = owned ? COLOR.good : (affordable ? COLOR.ctrlLineHi : COLOR.ctrlLine);
-    ctx.lineWidth = 1; roundRect(ctx, b.rect.x, b.rect.y, b.rect.w, b.rect.h, 8); ctx.stroke();
-    ctx.fillStyle = COLOR.ink; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-    const lines = wrapLabel(ctx, b.item.label, b.rect.w - 24, 2);
-    let ly = b.rect.y + (lines.length === 1 ? 24 : 19);
-    for (const ln of lines) { ctx.fillText(ln, b.rect.x + 12, ly); ly += 14; }
-    ctx.textAlign = "right";
-    if (owned) { ctx.fillStyle = COLOR.good; ctx.fillText("owned ✓", b.rect.x + b.rect.w - 12, b.rect.y + b.rect.h - 10); }
-    else { ctx.fillStyle = affordable ? COLOR.essence : COLOR.bad; ctx.fillText("✦ " + b.item.cost, b.rect.x + b.rect.w - 12, b.rect.y + b.rect.h - 10); }
-    ctx.textAlign = "left";
-  }
-
-  // Map picker — shown ONLY when more than one map is pickable (non-retired).
-  // With the Classic diner retired there's a single map, so the row is hidden
-  // (PLAY_BTN keeps its fixed spot); the picker returns automatically when Map 2
-  // ships. Click cycles maps; the label shows the active map's name.
-  if (pickableMaps().length > 1) {
-    const mapHover = inRect(game.pointer, MAP_BTN);
-    ctx.fillStyle = mapHover ? COLOR.ctrlSel : COLOR.ctrlBg;
-    roundRect(ctx, MAP_BTN.x, MAP_BTN.y, MAP_BTN.w, MAP_BTN.h, 8); ctx.fill();
-    ctx.strokeStyle = COLOR.ctrlLineHi; ctx.lineWidth = 1;
-    roundRect(ctx, MAP_BTN.x, MAP_BTN.y, MAP_BTN.w, MAP_BTN.h, 8); ctx.stroke();
-    ctx.fillStyle = COLOR.muted; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("Map:  " + MAP.name, MAP_BTN.x + MAP_BTN.w / 2, MAP_BTN.y + MAP_BTN.h / 2);
-    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
-  }
-
-  // Continue — resume the saved run at its wave start (Issue #83). Shown above
-  // "Open for Service" only when a checkpoint exists; the saved map's name rides
-  // the label so it's clear which run you're resuming.
-  const save = hasSave();
-  if (save) {
-    const cHover = inRect(game.pointer, RESUME_RUN_BTN);
-    ctx.fillStyle = cHover ? COLOR.good : "#1f6b3f";
-    roundRect(ctx, RESUME_RUN_BTN.x, RESUME_RUN_BTN.y, RESUME_RUN_BTN.w, RESUME_RUN_BTN.h, 10); ctx.fill();
-    const mapName = (MAPS.find((m) => m.id === save.mapId) || {}).name || "";
-    ctx.fillStyle = COLOR.ink; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "bold 16px system-ui, sans-serif";
-    ctx.fillText("▶  Continue — Wave " + (save.waveIndex + 1), DESIGN.w / 2, RESUME_RUN_BTN.y + RESUME_RUN_BTN.h / 2 - 8);
-    ctx.font = "11px system-ui, sans-serif"; ctx.fillStyle = "rgba(235,240,245,0.75)";
-    ctx.fillText(mapName, DESIGN.w / 2, RESUME_RUN_BTN.y + RESUME_RUN_BTN.h / 2 + 10);
-    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
-  }
-
-  // Play button.
-  const hover = inRect(game.pointer, PLAY_BTN);
-  ctx.fillStyle = hover ? COLOR.core : "#2b3f66";
-  roundRect(ctx, PLAY_BTN.x, PLAY_BTN.y, PLAY_BTN.w, PLAY_BTN.h, 10); ctx.fill();
-  ctx.fillStyle = COLOR.ink; ctx.font = "bold 18px system-ui, sans-serif";
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText("▶  Open for Service", DESIGN.w / 2, PLAY_BTN.y + PLAY_BTN.h / 2);
-  // When a save exists, make it explicit that starting fresh drops it.
-  if (save) {
-    ctx.textBaseline = "alphabetic"; ctx.font = "10px system-ui, sans-serif"; ctx.fillStyle = COLOR.muted;
-    ctx.fillText("(discards your saved run)", DESIGN.w / 2, PLAY_BTN.y - 6);
-  }
-  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
-
-  // Tap-for-details popover LAST so it overlays the hub as a modal (the 2-row deck
-  // grid leaves no inline room; details is tap-to-open, tap-anywhere-to-close).
-  if (hubOpen && deck.some((d) => d.id === hubOpen)) drawHubDetails(ctx, TOWER_BY_ID[hubOpen]);
+  drawMenuBackdrop(ctx);
+  if (menuScreen === "towers") return drawMenuTowers(ctx);
+  if (menuScreen === "shop") return drawMenuShop(ctx);
+  drawMenuMain(ctx);
 }
 
 /* ---- In-run drawing ---- */
