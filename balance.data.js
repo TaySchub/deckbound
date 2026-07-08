@@ -448,6 +448,24 @@ window.BALANCE = {
       "hpMul": 0.28,
       "speedMul": 1.2,
       "bounty": 5
+    },
+    "egg": {
+      "name": "Sunny-Side Up",
+      "hpMul": 0.5,
+      "speedMul": 2.5,
+      "bounty": 5
+    },
+    "stack": {
+      "name": "Short Stack",
+      "hpMul": 1.55,
+      "speedMul": 0.9,
+      "bounty": 25
+    },
+    "roast": {
+      "name": "The Roast Turkey",
+      "hpMul": 3.1,
+      "speedMul": 0.6,
+      "bounty": 45
     }
   },
   "towers": {
@@ -926,7 +944,10 @@ window.BALANCE = {
       "mote": 0,
       "runner": 1,
       "swarm": 2,
-      "brute": 4
+      "brute": 4,
+      "egg": 6,
+      "stack": 8,
+      "roast": 12
     },
     "typeWeights": {
       "mote": {
@@ -945,6 +966,18 @@ window.BALANCE = {
       "brute": {
         "base": 0.2,
         "perWave": 0.03
+      },
+      "egg": {
+        "base": 0.3,
+        "perWave": 0.02
+      },
+      "stack": {
+        "base": 0.25,
+        "perWave": 0.02
+      },
+      "roast": {
+        "base": 0.08,
+        "perWave": 0.01
       }
     },
     "endless": false

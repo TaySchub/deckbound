@@ -117,14 +117,19 @@ const TOWER_TYPES = TOWER_ORDER.map((id) => ({ id, ...BAL.towers[id], ...TOWER_A
 const TOWER_BY_ID = Object.fromEntries(TOWER_TYPES.map((t) => [t.id, t]));
 
 // Per-enemy ART (food colors/radius). hpMul/speedMul/bounty AND the display name
-// come from BAL.enemyTypes (data/balance.json). Radii are kept as-is because they
-// already echo real HP (brute > mote > runner > swarm); each enemy is drawn as
-// its dish in drawFood(), and color keeps them distinct at a glance.
+// come from BAL.enemyTypes (data/balance.json). Radius lives HERE (not balance.json)
+// with the rest of the food's art, but it IS gameplay-read (collision/AoE/zone
+// checks in engine.js), so it echoes real HP: roast > brute > stack > mote > runner
+// > egg > swarm. Each enemy is drawn as its dish in drawFood(), color keeps them
+// distinct at a glance.
 const ENEMY_ART = {
   mote:   { color: "#dca85c", edge: "#8a5a22", radius: 12 },  // Hot Dog — golden bun
   runner: { color: "#e3a95c", edge: "#7c4a1e", radius: 9 },   // The Slider — burger (golden bun)
   brute:  { color: "#7c3b2c", edge: "#3e1a12", radius: 17 },  // Tough Steak — dark slab
   swarm:  { color: "#f2ca3c", edge: "#a37e17", radius: 7 },   // Fry Swarm — bright yellow
+  egg:    { color: "#f4f1e8", edge: "#c9b98a", radius: 8 },   // Sunny-Side Up — glossy white, domed yolk (glass-cannon sprinter)
+  stack:  { color: "#d69a4c", edge: "#8a5a24", radius: 14 },  // Short Stack — pancakes, butter+syrup (mid-tank bruiser)
+  roast:  { color: "#c67f3a", edge: "#7a4518", radius: 19 },  // The Roast Turkey — big glazed bird (premium plate)
 };
 const ENEMY_TYPES = Object.fromEntries(
   Object.entries(BAL.enemyTypes).map(([id, stats]) => [id, { ...ENEMY_ART[id], ...stats }])

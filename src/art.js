@@ -13,6 +13,9 @@ const BITE_SPOTS = {
   mote:   [0.74, -0.36],   // top of the bun
   runner: [0.5, -0.4],     // top-right bun
   brute:  [0.6, -0.44],    // upper corner of the slab
+  egg:    [-0.5, -0.28],   // the white, left of the yolk
+  stack:  [0.6, -0.2],     // right edge of the top pancake
+  roast:  [0.46, -0.12],   // the breast
 };
 // One bite eaten out of a dish, at a fixed per-food spot; it grows into a bigger
 // chunk as HP drops (same corner, larger portion) rather than adding new bites.
@@ -168,6 +171,122 @@ function drawFood(ctx, typeId, x, y, r, color, edge, hurt, bites = 0) {
       ctx.fillStyle = "#f4ece0";
       ctx.beginPath(); ctx.moveTo(x - topW * 0.42, topY + r * 0.34); ctx.lineTo(x + topW * 0.42, topY + r * 0.34); ctx.lineTo(x + botW * 0.42, topY + r * 0.74); ctx.lineTo(x - botW * 0.42, topY + r * 0.74); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - topW / 2, topY); ctx.lineTo(x + topW / 2, topY); ctx.stroke();   // rim shade
+    }
+  } else if (typeId === "egg") {
+    // Sunny-Side Up — a glossy fried egg skidding down the belt on tiny legs: an
+    // irregular white with a domed golden yolk and speed lines behind it (the
+    // fastest, frailest dish — it slips past slow guns unless you catch it).
+    const ew = r * 1.35, eh = r * 0.95;   // white half-extents
+    ctx.fillStyle = "rgba(0,0,0,0.22)"; ctx.beginPath(); ctx.ellipse(x, y + r * 0.9, ew * 0.9, r * 0.16, 0, 0, 7); ctx.fill();   // shadow
+    ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineCap = "round"; ctx.lineWidth = Math.max(1, r * 0.12);   // speed lines behind
+    ctx.beginPath();
+    ctx.moveTo(x - ew * 1.05, y - r * 0.25); ctx.lineTo(x - ew * 1.85, y - r * 0.25);
+    ctx.moveTo(x - ew * 1.1, y + r * 0.1); ctx.lineTo(x - ew * 2.0, y + r * 0.1);
+    ctx.moveTo(x - ew * 1.0, y + r * 0.42); ctx.lineTo(x - ew * 1.65, y + r * 0.42); ctx.stroke();
+    ctx.strokeStyle = edge; ctx.lineCap = "round"; ctx.lineWidth = Math.max(1.2, r * 0.14);   // tiny legs
+    ctx.beginPath(); ctx.moveTo(x - r * 0.3, y + eh * 0.68); ctx.lineTo(x - r * 0.4, y + r * 0.9);
+    ctx.moveTo(x + r * 0.3, y + eh * 0.68); ctx.lineTo(x + r * 0.4, y + r * 0.9); ctx.stroke();
+    ctx.fillStyle = edge; ctx.beginPath();
+    ctx.ellipse(x - r * 0.46, y + r * 0.92, r * 0.16, r * 0.09, 0, 0, 7); ctx.ellipse(x + r * 0.46, y + r * 0.92, r * 0.16, r * 0.09, 0, 0, 7); ctx.fill();
+    const white = () => {
+      ctx.beginPath();
+      ctx.moveTo(x - ew, y - eh * 0.1);
+      ctx.quadraticCurveTo(x - ew * 1.05, y - eh * 0.85, x - ew * 0.35, y - eh * 0.8);
+      ctx.quadraticCurveTo(x + ew * 0.15, y - eh * 1.05, x + ew * 0.6, y - eh * 0.6);
+      ctx.quadraticCurveTo(x + ew * 1.12, y - eh * 0.2, x + ew * 0.95, y + eh * 0.45);
+      ctx.quadraticCurveTo(x + ew * 0.8, y + eh * 0.98, x + ew * 0.1, y + eh * 0.75);
+      ctx.quadraticCurveTo(x - ew * 0.55, y + eh * 1.02, x - ew * 0.85, y + eh * 0.4);
+      ctx.quadraticCurveTo(x - ew * 1.08, y + eh * 0.1, x - ew, y - eh * 0.1);
+      ctx.closePath();
+    };
+    if (hurt) { ctx.fillStyle = "#fff"; white(); ctx.fill(); }
+    else {
+      ctx.fillStyle = fill; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.3, r * 0.13);
+      white(); ctx.fill(); white(); ctx.stroke();
+      const yx = x + r * 0.28, yy = y - r * 0.05, yr = r * 0.5;   // yolk, leaning forward into motion
+      const yg = ctx.createRadialGradient(yx - yr * 0.3, yy - yr * 0.3, yr * 0.2, yx, yy, yr);
+      yg.addColorStop(0, "#ffd24a"); yg.addColorStop(1, "#f0a021");
+      ctx.fillStyle = yg; ctx.strokeStyle = "#c9791a"; ctx.lineWidth = Math.max(1, r * 0.09);
+      ctx.beginPath(); ctx.arc(yx, yy, yr, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.beginPath(); ctx.ellipse(yx - yr * 0.32, yy - yr * 0.34, yr * 0.28, yr * 0.2, -0.4, 0, 7); ctx.fill();   // yolk shine
+    }
+  } else if (typeId === "stack") {
+    // Short Stack — three pancakes with a melting butter pat and a syrup drizzle,
+    // plodding on stubby legs (a mid-weight bruiser: chunky HP, an awkward middling
+    // pace that syncs with neither the sprinters nor the slow steaks).
+    const pw = r * 1.15;   // pancake half-width
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(x, y + r * 0.98, pw * 1.05, r * 0.17, 0, 0, 7); ctx.fill();   // shadow
+    ctx.strokeStyle = edge; ctx.lineCap = "round"; ctx.lineWidth = Math.max(1.6, r * 0.14);   // stubby legs
+    ctx.beginPath(); ctx.moveTo(x - r * 0.42, y + r * 0.78); ctx.lineTo(x - r * 0.46, y + r * 0.96);
+    ctx.moveTo(x + r * 0.42, y + r * 0.78); ctx.lineTo(x + r * 0.46, y + r * 0.96); ctx.stroke();
+    ctx.fillStyle = edge; ctx.beginPath();
+    ctx.ellipse(x - r * 0.52, y + r * 0.98, r * 0.18, r * 0.1, 0, 0, 7); ctx.ellipse(x + r * 0.52, y + r * 0.98, r * 0.18, r * 0.1, 0, 0, 7); ctx.fill();
+    if (hurt) {
+      ctx.fillStyle = "#fff";
+      for (let i = 0; i < 3; i++) { const py = y + r * 0.42 - i * r * 0.44; ctx.beginPath(); ctx.ellipse(x, py, pw, r * 0.32, 0, 0, 7); ctx.fill(); }
+    } else {
+      // Three stacked pancakes, bottom to top: a darker front-rim ellipse for
+      // thickness, then the lighter top face over it.
+      for (let i = 0; i < 3; i++) {
+        const py = y + r * 0.42 - i * r * 0.44;
+        ctx.fillStyle = "#a9722f"; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.4, r * 0.13);
+        ctx.beginPath(); ctx.ellipse(x, py + r * 0.13, pw, r * 0.3, 0, 0, Math.PI); ctx.fill(); ctx.stroke();   // front rim (thickness)
+        ctx.fillStyle = i % 2 ? "#c98f43" : fill;
+        ctx.beginPath(); ctx.ellipse(x, py, pw, r * 0.3, 0, 0, 7); ctx.fill(); ctx.stroke();                    // top face
+      }
+      // Syrup drizzle spilling over the top edge and down the right side.
+      ctx.fillStyle = "#a8641b"; ctx.strokeStyle = "#7c4712"; ctx.lineWidth = Math.max(0.8, r * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(x - pw * 0.7, y - r * 0.34);
+      ctx.quadraticCurveTo(x - pw * 0.2, y - r * 0.12, x + pw * 0.35, y - r * 0.28);
+      ctx.quadraticCurveTo(x + pw * 0.9, y - r * 0.44, x + pw * 0.98, y + r * 0.08);
+      ctx.quadraticCurveTo(x + pw * 1.02, y + r * 0.46, x + pw * 0.78, y + r * 0.38);
+      ctx.quadraticCurveTo(x + pw * 0.86, y - r * 0.02, x + pw * 0.5, y + r * 0.02);
+      ctx.quadraticCurveTo(x + pw * 0.0, y + r * 0.08, x - pw * 0.7, y - r * 0.06);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Melting butter pat on top.
+      ctx.fillStyle = "#ffe07a"; ctx.strokeStyle = "#d1a63a"; ctx.lineWidth = Math.max(1, r * 0.08);
+      roundRect(ctx, x - r * 0.34, y - r * 0.7, r * 0.68, r * 0.42, r * 0.12); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.4)"; roundRect(ctx, x - r * 0.28, y - r * 0.66, r * 0.4, r * 0.14, r * 0.07); ctx.fill();   // butter shine
+    }
+  } else if (typeId === "roast") {
+    // The Roast Turkey — the premium plate: a big glazed bird with two frilled
+    // drumsticks, waddling slow on stubby legs. Rare, high HP, pays a fat tip —
+    // the dish you decide whether to swing the whole board around and prioritise.
+    const bw = r * 1.12, bh = r * 0.9;   // body half-extents
+    ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.beginPath(); ctx.ellipse(x, y + r * 1.04, bw * 1.05, r * 0.19, 0, 0, 7); ctx.fill();   // shadow
+    ctx.strokeStyle = edge; ctx.lineCap = "round"; ctx.lineWidth = Math.max(2, r * 0.15);   // stubby legs
+    ctx.beginPath(); ctx.moveTo(x - r * 0.42, y + bh * 0.85); ctx.lineTo(x - r * 0.47, y + r * 1.02);
+    ctx.moveTo(x + r * 0.42, y + bh * 0.85); ctx.lineTo(x + r * 0.47, y + r * 1.02); ctx.stroke();
+    ctx.fillStyle = edge; ctx.beginPath();
+    ctx.ellipse(x - r * 0.54, y + r * 1.04, r * 0.2, r * 0.1, 0, 0, 7); ctx.ellipse(x + r * 0.54, y + r * 1.04, r * 0.2, r * 0.1, 0, 0, 7); ctx.fill();
+    // Drumsticks poking up-and-out (behind the body), each with a paper frill cap.
+    const drum = (dir) => {
+      const dx = x + dir * bw * 0.5, ty = y - bh * 0.55;
+      ctx.save(); ctx.translate(dx, ty); ctx.rotate(dir * 0.5);
+      if (hurt) { ctx.fillStyle = "#fff"; roundRect(ctx, -r * 0.22, -r * 0.5, r * 0.44, r * 0.8, r * 0.2); ctx.fill(); ctx.restore(); return; }
+      ctx.fillStyle = "#b3702f"; ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.3, r * 0.12);
+      roundRect(ctx, -r * 0.22, -r * 0.46, r * 0.44, r * 0.74, r * 0.2); ctx.fill(); ctx.stroke();   // meaty end
+      ctx.strokeStyle = "#e8d7a0"; ctx.lineWidth = Math.max(1.4, r * 0.15); ctx.beginPath(); ctx.moveTo(0, -r * 0.46); ctx.lineTo(0, -r * 0.68); ctx.stroke();   // bone
+      ctx.fillStyle = "#f6efe0"; ctx.strokeStyle = "#cbbf9e"; ctx.lineWidth = Math.max(0.8, r * 0.06);   // paper frill
+      ctx.beginPath();
+      for (let i = -2; i <= 2; i++) ctx.arc(i * r * 0.1, -r * 0.72, r * 0.1, Math.PI, 0);
+      ctx.lineTo(r * 0.24, -r * 0.62); ctx.lineTo(-r * 0.24, -r * 0.62); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    };
+    drum(-1); drum(1);
+    const body = () => { ctx.beginPath(); ctx.ellipse(x, y + r * 0.05, bw, bh, 0, 0, 7); ctx.closePath(); };
+    if (hurt) { ctx.fillStyle = "#fff"; body(); ctx.fill(); }
+    else {
+      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.25, r * 0.3, x, y + r * 0.05, bw * 1.1);
+      g.addColorStop(0, "#e0954a"); g.addColorStop(0.65, fill); g.addColorStop(1, "#8a501f");
+      ctx.fillStyle = g; body(); ctx.fill();
+      ctx.save(); body(); ctx.clip();
+      ctx.strokeStyle = "rgba(120,64,20,0.4)"; ctx.lineWidth = Math.max(1.2, r * 0.09); ctx.lineCap = "round";   // basting streaks
+      for (const o of [-0.4, 0.05, 0.5]) { ctx.beginPath(); ctx.moveTo(x + o * bw, y - bh * 0.5); ctx.quadraticCurveTo(x + o * bw + r * 0.2, y + r * 0.1, x + o * bw - r * 0.1, y + bh * 0.6); ctx.stroke(); }
+      ctx.fillStyle = "rgba(255,255,255,0.28)"; ctx.beginPath(); ctx.ellipse(x - r * 0.35, y - r * 0.3, bw * 0.5, bh * 0.3, -0.3, 0, 7); ctx.fill();   // glaze sheen
+      ctx.restore();
+      ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.8, r * 0.13); body(); ctx.stroke();
     }
   } else {
     ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
